@@ -37,6 +37,8 @@ app.mount("/videos", StaticFiles(directory="videos"), name="videos")
 # Ensure video directory exists
 Path("videos").mkdir(exist_ok=True)
 
+PROXY_CONN = os.getenv("PROXY_CONN", "")
+
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
@@ -53,7 +55,10 @@ async def process_video(request: Request):
         raise HTTPException(status_code=400, detail="YouTube URL is required")
 
     # Download YouTube video
-    downloaded_path, error = dl_yt_video(youtube_url, output_path=VIDEO_PATH)
+    proxies = None
+    if PROXY_CONN:
+        proxies = {"http": PROXY_CONN}
+    downloaded_path, error = dl_yt_video(youtube_url, output_path=VIDEO_PATH, proxies=proxies)
     if error:
         raise HTTPException(status_code=400, detail=error.value)
 
@@ -96,5 +101,4 @@ if __name__ == "__main__":
     load_dotenv()
     port = int(os.getenv("PORT", "8000"))
     log_level = os.getenv("LOG_LEVEL", "info")
-    print(port, log_level)
     uvicorn.run("main:app", host="127.0.0.1", port=port, log_level=log_level)

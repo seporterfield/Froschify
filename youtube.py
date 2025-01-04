@@ -17,10 +17,10 @@ class YouTubeError(Enum):
 
 
 def dl_yt_video(
-    url: str, output_path: str = "."
+    url: str, output_path: str = ".", proxies: dict[str, str] | None = None
 ) -> Tuple[str | None, YouTubeError | None]:
     try:
-        yt = YouTube(url)
+        yt = YouTube(url, proxies=proxies)
 
         # Check if video is available (pytubefix will handle this internally)
         if yt.length > MAX_VIDEO_LENGTH:
