@@ -25,6 +25,12 @@
             margin-bottom: 15px;
         }
 
+        .button-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
         input[type="text"] {
             width: 100%;
             padding: 8px;
@@ -88,6 +94,48 @@
         #retryTimer {
             font-weight: bold;
         }
+
+        .info-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            background-color: #ddd;
+            color: #000;
+            text-align: center;
+            border-radius: 50%;
+            font-size: 12px;
+            cursor: pointer;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .info-icon:hover .tooltip {
+            display: block;
+        }
+
+        .tooltip {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 24px;
+            transform: translateY(-50%);
+            background: #fff;
+            color: #000;
+            padding: 8px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            font-size: 0.9em;
+            width: 200px;
+            z-index: 100;
+        }
+
+        .download-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
     </style>
 </head>
 
@@ -100,10 +148,14 @@
             <div class="form-group">
                 <label for="youtube_url">YouTube URL:</label>
                 <input type="text" id="youtube_url" name="youtube_url" required>
-                <div class="info">Note: Videos must be under 5 minutes long</div>
-                <div class="info">Limited to 2 video processes per minute per IP address</div>
+                <div class="info">Videos must be under 5 minutes long</div>
             </div>
-            <button type="submit" id="submitBtn">Create Video</button>
+            <div class="button-container">
+                <button type="submit" id="submitBtn">Create Video</button>
+                <span class="info-icon" tabindex="0">i
+                    <div class="tooltip">You are limited to 2 videos per minute</div>
+                </span>
+            </div>
         </form>
 
         <div id="loading" class="loading">
@@ -117,8 +169,12 @@
 
         <div id="download">
             <p>Your video is ready!</p>
-            <a id="downloadBtn" class="button">Download Video</a>
-            <div class="info">Note: Downloads are limited to 10 per minute per IP address</div>
+            <div class="download-container">
+                <a id="downloadBtn" class="button">Download Video</a>
+                <span class="info-icon" tabindex="0">i
+                    <div class="tooltip">You are limited to 10 downloads per minute</div>
+                </span>
+            </div>
         </div>
     </div>
 
@@ -130,7 +186,7 @@
             let timeLeft = retryAfter;
 
             clearTimeout(retryTimeout);
-            
+
             function updateTimer() {
                 timerElement.textContent = timeLeft;
                 if (timeLeft <= 0) {
