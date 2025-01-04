@@ -38,7 +38,7 @@ def is_yt_url(url: str) -> Tuple[bool, YouTubeError | None]:
     try:
         res = requests.get(url)
         if res.status_code != 200:
-            logger.debug("GET request to youtube failed")
+            logger.debug(f"GET request to youtube failed: {res.status_code}")
             return False, YouTubeError.HTTP_ERROR
 
         if UNAVAILABLE_CONTENTSUBSTR in res.text:
