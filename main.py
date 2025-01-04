@@ -7,8 +7,13 @@ import os
 from moviepy import VideoFileClip
 from pathlib import Path
 
-from youtube import dl_yt_video, YouTubeError
+from youtube import dl_yt_video
 from edit import insert_clip_in_middle
+
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 VIDEO_PATH = "videos"
 VIDEO_TOINSERT_PATH = "videos/walterfrosch.mp4"
@@ -63,7 +68,8 @@ async def process_video(request: Request):
         return {"filename": output_filename}
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Error editing video: {str(e)}")
+        raise HTTPException(status_code=500)
 
 
 @app.get("/download/{filename}")

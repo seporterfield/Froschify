@@ -4,6 +4,9 @@ from pytubefix import YouTube
 import requests
 from enum import Enum
 from typing import Tuple
+import logging
+
+logger = logging.getLogger(__name__)
 
 yt = YouTube("https://www.youtube.com/watch?v=0YEL6cB9_8s")
 
@@ -41,6 +44,7 @@ def is_yt_url(url: str) -> Tuple[bool, YouTubeError | None]:
 
         return True, None
     except Exception as e:
+        logger.error(f"Error connecting to youtube with requests: {str(e)}")
         return False, YouTubeError.HTTP_ERROR
 
 
@@ -62,4 +66,5 @@ def dl_yt_video(
         )
         return path, None
     except Exception as e:
+        logger.error(f"Error connecting to youtube with pytubefixed: {str(e)}")
         return None, YouTubeError.UNAVAILABLE
