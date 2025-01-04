@@ -35,6 +35,11 @@ async def home(request: Request):
 
 @app.post("/process")
 async def process_video(request: Request):
+    print("test1")
+    logger.info("test2")
+    logger.error("test3")
+    rootlogger = logging.getLogger()
+    rootlogger.error("test4")
     form_data = await request.form()
     youtube_url = form_data.get("youtube_url")
 
