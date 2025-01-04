@@ -6,7 +6,7 @@ from enum import Enum
 from typing import Tuple
 import logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("uvicorn.error")
 
 yt = YouTube("https://www.youtube.com/watch?v=0YEL6cB9_8s")
 

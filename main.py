@@ -13,7 +13,7 @@ from edit import insert_clip_in_middle
 import logging
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("uvicorn.error")
 
 VIDEO_PATH = "videos"
 VIDEO_TOINSERT_PATH = "videos/walterfrosch.mp4"

@@ -1,7 +1,7 @@
 from moviepy import VideoFileClip, concatenate_videoclips
 import logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("uvicorn.error")
 
 
 def insert_clip_in_middle(video: VideoFileClip, clip: VideoFileClip) -> VideoFileClip:
