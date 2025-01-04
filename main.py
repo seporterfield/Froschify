@@ -9,8 +9,9 @@ from pathlib import Path
 
 from youtube import dl_yt_video
 from edit import insert_clip_in_middle
-
+import uvicorn
 import logging
+from dotenv import load_dotenv
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("uvicorn.error")
@@ -79,3 +80,11 @@ async def download_video(filename: str):
     if not os.path.exists(video_path):
         raise HTTPException(status_code=404, detail="Video not found")
     return FileResponse(video_path, media_type="video/mp4", filename=filename)
+
+
+if __name__ == "__main__":
+    load_dotenv()
+    port = int(os.getenv("PORT", "8000"))
+    log_level = os.getenv("LOG_LEVEL", "info")
+    print(port, log_level)
+    uvicorn.run("main:app", host="127.0.0.1", port=port, log_level=log_level)

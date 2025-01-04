@@ -29,6 +29,7 @@ class YouTubeError(Enum):
 def is_yt_url(url: str) -> Tuple[bool, YouTubeError | None]:
     yt_pattern = re.compile(YOUTUBE_REGEX)
     if not bool(yt_pattern.match(url)):
+        logger.debug("Pattern is not valid youtube URL")
         return False, YouTubeError.INVALID_URL
 
     if not url.startswith(("http://", "https://")):
@@ -37,9 +38,11 @@ def is_yt_url(url: str) -> Tuple[bool, YouTubeError | None]:
     try:
         res = requests.get(url)
         if res.status_code != 200:
+            logger.debug("GET request to youtube failed")
             return False, YouTubeError.HTTP_ERROR
 
         if UNAVAILABLE_CONTENTSUBSTR in res.text:
+            logger.debug("Video is unavailable")
             return False, YouTubeError.UNAVAILABLE
 
         return True, None
@@ -59,6 +62,7 @@ def dl_yt_video(
     try:
         yt = YouTube(url)
         if yt.length > MAX_VIDEO_LENGTH:
+            logger.debug("Video too long")
             return None, YouTubeError.TOO_LONG
 
         filename = str(uuid.uuid4()) + ".mp4"
