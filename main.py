@@ -13,13 +13,22 @@ import uvicorn
 import logging
 from dotenv import load_dotenv
 
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("uvicorn.error")
 
 VIDEO_PATH = "videos"
 VIDEO_TOINSERT_PATH = "videos/walterfrosch.mp4"
 
+limiter = Limiter(key_func=get_remote_address)
 app = FastAPI()
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 # Setup templates and static files
 templates = Jinja2Templates(directory="templates")
@@ -35,6 +44,7 @@ async def home(request: Request):
 
 
 @app.post("/process")
+@limiter.limit("2/minute")
 async def process_video(request: Request):
     form_data = await request.form()
     youtube_url = form_data.get("youtube_url")
@@ -75,7 +85,8 @@ async def process_video(request: Request):
 
 
 @app.get("/download/{filename}")
-async def download_video(filename: str):
+@limiter.limit("10/minute")
+async def download_video(request: Request, filename: str):
     video_path = os.path.join(VIDEO_PATH, filename)
     if not os.path.exists(video_path):
         raise HTTPException(status_code=404, detail="Video not found")

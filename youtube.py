@@ -5,6 +5,7 @@ import requests
 from enum import Enum
 from typing import Tuple
 import logging
+import time
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -24,6 +25,7 @@ class YouTubeError(Enum):
     UNAVAILABLE = "Video is unavailable"
     TOO_LONG = "Video exceeds maximum length of 5 minutes"
     HTTP_ERROR = "Could not access video URL"
+    RATE_LIMIT = "YouTube rate limit exceeded"
 
 
 def is_yt_url(url: str) -> Tuple[bool, YouTubeError | None]:
@@ -36,7 +38,25 @@ def is_yt_url(url: str) -> Tuple[bool, YouTubeError | None]:
         url = "https://" + url
 
     try:
-        res = requests.get(url)
+        res = requests.get(url, allow_redirects=True)
+
+        if res.status_code == 429:
+            # Get rate limit details
+            retry_after = res.headers.get("Retry-After")
+            x_ratelimit_reset = res.headers.get("X-RateLimit-Reset")
+            x_quota_remaining = res.headers.get("X-Quota-Remaining")
+
+            rate_limit_info = {
+                "status_code": res.status_code,
+                "retry_after": retry_after,
+                "x_ratelimit_reset": x_ratelimit_reset,
+                "x_quota_remaining": x_quota_remaining,
+                "response_headers": dict(res.headers),
+                "timestamp": time.time(),
+            }
+
+            logger.error(f"YouTube rate limit hit. Details: {rate_limit_info}")
+            return False, YouTubeError.RATE_LIMIT
         if res.status_code != 200:
             logger.debug(f"GET request to youtube failed: {res.status_code}")
             return False, YouTubeError.HTTP_ERROR

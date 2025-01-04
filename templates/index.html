@@ -55,13 +55,23 @@
         }
 
         #error {
-            color: red;
+            color: #721c24;
             margin-top: 10px;
             display: none;
             padding: 10px;
             border-radius: 4px;
-            background-color: #ffebee;
-            border: 1px solid #ffcdd2;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+        }
+
+        #rateLimit {
+            color: #856404;
+            margin-top: 10px;
+            display: none;
+            padding: 10px;
+            border-radius: 4px;
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
         }
 
         #download {
@@ -73,6 +83,10 @@
             font-size: 0.9em;
             color: #666;
             margin-top: 10px;
+        }
+
+        #retryTimer {
+            font-weight: bold;
         }
     </style>
 </head>
@@ -87,6 +101,7 @@
                 <label for="youtube_url">YouTube URL:</label>
                 <input type="text" id="youtube_url" name="youtube_url" required>
                 <div class="info">Note: Videos must be under 5 minutes long</div>
+                <div class="info">Limited to 2 video processes per minute per IP address</div>
             </div>
             <button type="submit" id="submitBtn">Create Video</button>
         </form>
@@ -96,14 +111,40 @@
         </div>
 
         <div id="error"></div>
+        <div id="rateLimit">
+            Rate limit exceeded. Please wait <span id="retryTimer">60</span> seconds before trying again.
+        </div>
 
         <div id="download">
             <p>Your video is ready!</p>
             <a id="downloadBtn" class="button">Download Video</a>
+            <div class="info">Note: Downloads are limited to 10 per minute per IP address</div>
         </div>
     </div>
 
     <script>
+        let retryTimeout;
+
+        function startRetryTimer(retryAfter = 60) {
+            const timerElement = document.getElementById('retryTimer');
+            let timeLeft = retryAfter;
+
+            clearTimeout(retryTimeout);
+            
+            function updateTimer() {
+                timerElement.textContent = timeLeft;
+                if (timeLeft <= 0) {
+                    document.getElementById('rateLimit').style.display = 'none';
+                    document.getElementById('submitBtn').disabled = false;
+                    return;
+                }
+                timeLeft--;
+                retryTimeout = setTimeout(updateTimer, 1000);
+            }
+
+            updateTimer();
+        }
+
         document.getElementById('videoForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -111,10 +152,12 @@
             const submitBtn = document.getElementById('submitBtn');
             const loading = document.getElementById('loading');
             const error = document.getElementById('error');
+            const rateLimit = document.getElementById('rateLimit');
             const download = document.getElementById('download');
 
             // Reset UI
             error.style.display = 'none';
+            rateLimit.style.display = 'none';
             download.style.display = 'none';
             submitBtn.disabled = true;
             loading.style.display = 'block';
@@ -129,6 +172,11 @@
                 const data = await response.json();
 
                 if (!response.ok) {
+                    if (response.status === 429) {
+                        // Rate limit exceeded
+                        const retryAfter = parseInt(response.headers.get('Retry-After')) || 60;
+                        throw new Error('RATE_LIMIT_EXCEEDED');
+                    }
                     throw new Error(data.detail || 'Failed to process video');
                 }
 
@@ -139,11 +187,26 @@
                 download.style.display = 'block';
 
             } catch (err) {
-                error.textContent = err.message;
-                error.style.display = 'block';
+                if (err.message === 'RATE_LIMIT_EXCEEDED') {
+                    rateLimit.style.display = 'block';
+                    startRetryTimer();
+                } else {
+                    error.textContent = err.message;
+                    error.style.display = 'block';
+                    submitBtn.disabled = false;
+                }
                 loading.style.display = 'none';
-            } finally {
-                submitBtn.disabled = false;
+            }
+        });
+
+        // Handle rate limit errors for downloads
+        document.getElementById('downloadBtn').addEventListener('click', async (e) => {
+            const response = await fetch(e.target.href);
+            if (response.status === 429) {
+                e.preventDefault();
+                const rateLimit = document.getElementById('rateLimit');
+                rateLimit.style.display = 'block';
+                startRetryTimer();
             }
         });
     </script>
