@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,15 +13,18 @@
             padding: 20px;
             line-height: 1.6;
         }
+
         .container {
             background: #f5f5f5;
             padding: 20px;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
+
         .form-group {
             margin-bottom: 15px;
         }
+
         input[type="text"] {
             width: 100%;
             padding: 8px;
@@ -28,7 +32,9 @@
             border-radius: 4px;
             box-sizing: border-box;
         }
-        button, .button {
+
+        button,
+        .button {
             background: #4CAF50;
             color: white;
             padding: 10px 20px;
@@ -38,43 +44,59 @@
             text-decoration: none;
             display: inline-block;
         }
+
         button:disabled {
             background: #cccccc;
         }
+
         .loading {
             display: none;
             margin-top: 20px;
         }
+
         #error {
             color: red;
             margin-top: 10px;
             display: none;
+            padding: 10px;
+            border-radius: 4px;
+            background-color: #ffebee;
+            border: 1px solid #ffcdd2;
         }
+
         #download {
             display: none;
             margin-top: 20px;
         }
+
+        .info {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 10px;
+        }
     </style>
 </head>
+
 <body>
     <div class="container">
         <h1>Froschify</h1>
         <p>Enter a YouTube URL to insert Walter Frosch in the middle of the video!</p>
-        
+
         <form id="videoForm">
             <div class="form-group">
                 <label for="youtube_url">YouTube URL:</label>
                 <input type="text" id="youtube_url" name="youtube_url" required>
+                <div class="info">Note: Videos must be under 5 minutes long</div>
             </div>
             <button type="submit" id="submitBtn">Create Video</button>
         </form>
-        
+
         <div id="loading" class="loading">
             Processing video... This may take a few minutes.
         </div>
-        
+
         <div id="error"></div>
-        
+
         <div id="download">
             <p>Your video is ready!</p>
             <a id="downloadBtn" class="button">Download Video</a>
@@ -84,38 +106,38 @@
     <script>
         document.getElementById('videoForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             const form = e.target;
             const submitBtn = document.getElementById('submitBtn');
             const loading = document.getElementById('loading');
             const error = document.getElementById('error');
             const download = document.getElementById('download');
-            
+
             // Reset UI
             error.style.display = 'none';
             download.style.display = 'none';
             submitBtn.disabled = true;
             loading.style.display = 'block';
-            
+
             try {
                 const formData = new FormData(form);
                 const response = await fetch('/process', {
                     method: 'POST',
                     body: formData
                 });
-                
+
+                const data = await response.json();
+
                 if (!response.ok) {
-                    const data = await response.json();
                     throw new Error(data.detail || 'Failed to process video');
                 }
-                
-                const data = await response.json();
+
                 const downloadBtn = document.getElementById('downloadBtn');
                 downloadBtn.href = `/download/${data.filename}`;
-                
+
                 loading.style.display = 'none';
                 download.style.display = 'block';
-                
+
             } catch (err) {
                 error.textContent = err.message;
                 error.style.display = 'block';
@@ -126,4 +148,5 @@
         });
     </script>
 </body>
+
 </html>

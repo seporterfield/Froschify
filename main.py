@@ -7,7 +7,7 @@ import os
 from moviepy import VideoFileClip
 from pathlib import Path
 
-from youtube import dl_yt_video
+from youtube import dl_yt_video, YouTubeError
 from edit import insert_clip_in_middle
 
 VIDEO_PATH = "videos"
@@ -37,11 +37,9 @@ async def process_video(request: Request):
         raise HTTPException(status_code=400, detail="YouTube URL is required")
 
     # Download YouTube video
-    downloaded_path = dl_yt_video(youtube_url, output_path=VIDEO_PATH)
-    if not downloaded_path:
-        raise HTTPException(
-            status_code=400, detail="Invalid YouTube URL or video too long"
-        )
+    downloaded_path, error = dl_yt_video(youtube_url, output_path=VIDEO_PATH)
+    if error:
+        raise HTTPException(status_code=400, detail=error.value)
 
     try:
         # Load videos
