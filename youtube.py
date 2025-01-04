@@ -44,7 +44,8 @@ def is_yt_url(url: str) -> Tuple[bool, YouTubeError | None]:
 
         return True, None
     except Exception as e:
-        logger.error(f"Error connecting to youtube with requests: {str(e)}")
+        logger.error("Error connecting to youtube with requests")
+        logger.error(msg=str(e))
         return False, YouTubeError.HTTP_ERROR
 
 
@@ -66,5 +67,6 @@ def dl_yt_video(
         )
         return path, None
     except Exception as e:
-        logger.error(f"Error connecting to youtube with pytubefixed: {str(e)}")
+        logger.error("Error connecting to youtube with pytubefixed")
+        logger.error(msg=str(e))
         return None, YouTubeError.UNAVAILABLE
