@@ -86,7 +86,7 @@ async def process_video(request: Request):
 
     except Exception as e:
         error_msg = str(e).lower()
-        logger.critical(f"error editing video: {error_msg + "\n" + traceback.format_exc()}")
+        logger.critical(f"error editing video: {error_msg}\n{traceback.format_exc()}")
         raise HTTPException(status_code=500)
 
 
