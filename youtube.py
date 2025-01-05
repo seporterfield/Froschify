@@ -3,6 +3,7 @@ from pytubefix import YouTube
 from enum import Enum
 from typing import Tuple
 import logging
+import traceback
 
 logger = logging.getLogger("uvicorn.error")
 MAX_VIDEO_LENGTH = 300
@@ -38,11 +39,11 @@ def dl_yt_video(
 
         # Check for specific error types
         if "429" in error_msg or "too many requests" in error_msg:
-            logger.error(f"YouTube rate limit in pytubefix: {error_msg}")
+            logger.critical(f"YouTube rate limit in pytubefix: {error_msg + "\n" + traceback.format_exc()}")
             return None, YouTubeError.RATE_LIMIT
         elif "unavailable" in error_msg or "private" in error_msg:
-            logger.error(f"Video unavailable: {error_msg}")
+            logger.error(f"Video unavailable: {error_msg + "\n" + traceback.format_exc()}")
             return None, YouTubeError.UNAVAILABLE
         else:
-            logger.error(f"Error connecting to youtube with pytubefixed: {error_msg}")
+            logger.critical(f"Error connecting to youtube with pytubefixed: {error_msg + "\n" + traceback.format_exc()}")
             return None, YouTubeError.HTTP_ERROR

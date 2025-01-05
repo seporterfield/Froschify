@@ -5,6 +5,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 import os
 from moviepy import VideoFileClip
+import traceback
 from pathlib import Path
 
 from youtube import dl_yt_video
@@ -84,7 +85,8 @@ async def process_video(request: Request):
         return {"filename": output_filename}
 
     except Exception as e:
-        logger.error(f"Error editing video {str(e)}")
+        error_msg = str(e).lower()
+        logger.critical(f"error editing video: {error_msg + "\n" + traceback.format_exc()}")
         raise HTTPException(status_code=500)
 
 
