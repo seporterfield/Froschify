@@ -103,7 +103,7 @@ class DebugYouTube(YouTube):
                 self._debug_vid_info = result
             return result
         except Exception as e:
-            logger.error(f"Error in vid_info property: {str(e)}")
+            logger.error(f"Error in vid_info property: {str(e)}\n{traceback.format_exc()}")
             raise
 
     @vid_info.setter
@@ -115,7 +115,6 @@ class DebugYouTube(YouTube):
             logger.error("Attempting to set vid_info to None!")
             logger.error(f"Current client: {self.client}")
             # Get the current stack trace
-            import traceback
             logger.error("Stack trace:\n" + traceback.format_stack()[-2])
         self._vid_info = value
 
@@ -138,5 +137,5 @@ class DebugYouTube(YouTube):
                 
             return int(length_seconds)
         except Exception as e:
-            logger.error(f"Error getting video length: {str(e)}")
+            logger.error(f"Error getting video length: {str(e)}\n{traceback.format_exc()}")
             return None
