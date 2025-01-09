@@ -42,7 +42,11 @@ templates = Jinja2Templates(directory="templates")
 # Ensure video directory exists
 
 PROXY_CONNS = os.getenv("PROXY_CONNS", "").split(",")
-PROXY_CONN = None if not PROXY_CONNS else get_working_proxy(PROXY_CONNS)
+PROXY_CONN = (
+    None
+    if not PROXY_CONNS or PROXY_CONNS[0].strip() == ""
+    else get_working_proxy(PROXY_CONNS)
+)
 
 
 @app.get("/", response_class=HTMLResponse)

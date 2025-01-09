@@ -45,6 +45,9 @@ def dl_yt_video(
         # Check if video is available (pytubefix will handle this internally)
         logger.debug(f"Video ID: {yt.video_id}")
 
+        if yt.length() is None:
+            logger.critical("couldn't get all video info, aborting")
+            return None, YouTubeError.UNAVAILABLE
         if yt.length() > MAX_VIDEO_LENGTH:
             logger.debug("Video too long")
             return None, YouTubeError.TOO_LONG
@@ -89,6 +92,7 @@ class DebugYouTube(YouTube):
         """
         try:
             result = super().vid_info
+            logger.debug(f"Playability status: {result['playabilityStatus']}")
             if result is None:
                 logger.error("vid_info is None!")
                 # Log the current state
