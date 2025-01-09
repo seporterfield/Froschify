@@ -219,51 +219,127 @@
             submitBtn.disabled = true;
             loading.style.display = 'block';
 
-            try {
-                const formData = new FormData(form);
-                const response = await fetch('/process', {
-                    method: 'POST',
-                    body: formData
-                });
+            const maxRetries = 3;
+            let retryCount = 0;
 
-                const data = await response.json();
+            async function attemptRequest() {
+                try {
+                    const formData = new FormData(form);
+                    const response = await fetch('/process', {
+                        method: 'POST',
+                        body: formData
+                    });
 
-                if (!response.ok) {
-                    if (response.status === 429) {
-                        // Rate limit exceeded
-                        const retryAfter = parseInt(response.headers.get('Retry-After')) || 60;
-                        throw new Error('RATE_LIMIT_EXCEEDED');
+                    if (response.status === 502) {
+                        if (retryCount < maxRetries) {
+                            retryCount++;
+                            loading.textContent = `Server is busy, retrying (attempt ${retryCount}/${maxRetries})...`;
+                            // Exponential backoff: 2s, 4s, 8s
+                            await new Promise(resolve => setTimeout(resolve, 2000 * Math.pow(2, retryCount - 1)));
+                            return attemptRequest();
+                        } else {
+                            throw new Error('Server is temporarily overloaded. Please try again in a few minutes.');
+                        }
                     }
-                    throw new Error(data.detail || 'Failed to process video');
+
+                    if (!response.ok) {
+                        if (response.status === 429) {
+                            const retryAfter = parseInt(response.headers.get('Retry-After')) || 60;
+                            throw new Error('RATE_LIMIT_EXCEEDED');
+                        }
+
+                        // Try to parse error message if possible
+                        let errorMessage;
+                        try {
+                            const errorData = await response.json();
+                            errorMessage = errorData.detail;
+                        } catch {
+                            errorMessage = `Server error (${response.status}). Please try again.`;
+                        }
+                        throw new Error(errorMessage);
+                    }
+
+                    const data = await response.json();
+                    const downloadBtn = document.getElementById('downloadBtn');
+                    downloadBtn.href = `/download/${data.filename}`;
+
+                    loading.style.display = 'none';
+                    download.style.display = 'block';
+
+                } catch (err) {
+                    if (err.message === 'RATE_LIMIT_EXCEEDED') {
+                        rateLimit.style.display = 'block';
+                        startRetryTimer();
+                    } else {
+                        error.textContent = err.message;
+                        error.style.display = 'block';
+                        submitBtn.disabled = false;
+                    }
+                    loading.style.display = 'none';
                 }
-
-                const downloadBtn = document.getElementById('downloadBtn');
-                downloadBtn.href = `/download/${data.filename}`;
-
-                loading.style.display = 'none';
-                download.style.display = 'block';
-
-            } catch (err) {
-                if (err.message === 'RATE_LIMIT_EXCEEDED') {
-                    rateLimit.style.display = 'block';
-                    startRetryTimer();
-                } else {
-                    error.textContent = err.message;
-                    error.style.display = 'block';
-                    submitBtn.disabled = false;
-                }
-                loading.style.display = 'none';
             }
+
+            attemptRequest();
         });
 
         // Handle rate limit errors for downloads
         document.getElementById('downloadBtn').addEventListener('click', async (e) => {
-            const response = await fetch(e.target.href);
-            if (response.status === 429) {
-                e.preventDefault();
-                const rateLimit = document.getElementById('rateLimit');
-                rateLimit.style.display = 'block';
-                startRetryTimer();
+            e.preventDefault(); // Prevent default immediately to handle download manually
+
+            const error = document.getElementById('error');
+            const loading = document.getElementById('loading');
+            const downloadBtn = e.target;
+            const originalText = downloadBtn.textContent;
+
+            // Reset error and update UI to loading state
+            error.style.display = 'none';
+            loading.textContent = 'Preparing download...';
+            loading.style.display = 'block';
+            downloadBtn.disabled = true;
+            downloadBtn.textContent = 'Preparing...';
+
+            try {
+                const response = await fetch(downloadBtn.href, {
+                    // Set longer timeout by aborting after 30 seconds
+                    signal: AbortSignal.timeout(30000)
+                });
+
+                if (response.status === 429) {
+                    const rateLimit = document.getElementById('rateLimit');
+                    rateLimit.style.display = 'block';
+                    startRetryTimer();
+                } else if (response.status === 502) {
+                    error.textContent = 'Server is temporarily busy. Please try again in a few moments.';
+                    error.style.display = 'block';
+                } else if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                } else {
+                    // Successful response - trigger actual download
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = downloadBtn.href.split('/').pop(); // Get filename from URL
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                }
+            } catch (err) {
+                console.log(err.message);
+                if (err.name === 'TimeoutError') {
+                    error.textContent = 'Download is taking longer than expected. Please try again.';
+                } else if (err.name === 'AbortError') {
+                    error.textContent = 'Download was interrupted. Please try again.';
+                } else {
+                    error.textContent = 'Failed to download. Please try again.';
+                }
+                error.style.display = 'block';
+            } finally {
+                // Reset UI state
+                loading.style.display = 'none';
+                downloadBtn.disabled = false;
+                downloadBtn.textContent = originalText;
             }
         });
     </script>
