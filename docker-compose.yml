@@ -8,3 +8,10 @@ services:
     volumes:
       - ./videos:/app/videos
     restart: unless-stopped
+    # deploy: <- Uncomment to test container under constrained resources
+    #   resources:
+    #     limits:
+    #       memory: 512m
+    #       cpus: '0.6'
+    #     reservations:
+    #       memory: 512m
