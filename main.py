@@ -91,7 +91,7 @@ async def process_video(request: Request):
         logger.debug("Inserting video")
         final_video = insert_clip_in_middle(main_video, video_toinsert)
         logger.debug(f"Writing final video to {output_path}")
-        final_video.write_videofile(output_path, threads=2)
+        final_video.write_videofile(output_path, threads=2, bitrate="1k")
 
         # Clean up
         logger.debug("Cleaning up resources")
