@@ -147,23 +147,6 @@ async def download_video(request: Request, filename: str):
     return FileResponse(video_path, media_type="video/mp4", filename=filename)
 
 
-@app.get("/download2/{filename}")
-@limiter.limit("10/minute")
-async def download_video_2(request: Request, filename: str):
-    logger.debug("Attempt seeing if video_path exists")
-    time.sleep(10)
-    logger.debug("Now seeing if it exists!")
-    return os.path.join(VIDEO_PATH, filename)
-
-
-@app.get("/download3/{filename}")
-@limiter.limit("10/minute")
-async def download_video_3(request: Request, filename: str):
-    logger.debug("Aborting!")
-    time.sleep(10)
-    raise HTTPException(status_code=404, detail="Aborted")
-
-
 if __name__ == "__main__":
     port = int(os.getenv("PORT", "8000"))
     log_level = os.getenv("LOG_LEVEL", "info")
