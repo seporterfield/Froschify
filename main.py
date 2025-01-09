@@ -129,7 +129,9 @@ async def process_video(request: Request):
 async def download_video(request: Request, filename: str):
     video_path = os.path.join(VIDEO_PATH, filename)
     if not os.path.exists(video_path):
+        logger.debug(f"File does not exist. Directory contents: {os.listdir(VIDEO_PATH)}")
         raise HTTPException(status_code=404, detail="Video not found")
+    logger.debug(f"File exists, permissions: {oct(os.stat(video_path).st_mode)}")
     return FileResponse(video_path, media_type="video/mp4", filename=filename)
 
 
