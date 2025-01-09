@@ -28,6 +28,7 @@ logger = logging.getLogger("uvicorn.error")
 
 VIDEO_PATH = "videos"
 VIDEO_TOINSERT_PATH = "walterfrosch.mp4"
+BITRATE = os.getenv("BITRATE", "5000k")
 
 limiter = Limiter(key_func=get_remote_address)
 app = FastAPI()
@@ -91,7 +92,7 @@ async def process_video(request: Request):
         logger.debug("Inserting video")
         final_video = insert_clip_in_middle(main_video, video_toinsert)
         logger.debug(f"Writing final video to {output_path}")
-        final_video.write_videofile(output_path, threads=2, bitrate="1k")
+        final_video.write_videofile(output_path, threads=2, bitrate=BITRATE)
 
         # Clean up
         logger.debug("Cleaning up resources")
@@ -100,11 +101,20 @@ async def process_video(request: Request):
         final_video.close()
         os.remove(downloaded_path)  # Remove original downloaded video
         logger.debug("Finished processing")
+        if os.path.exists(output_path):
+            logger.debug(f"File {output_path} successfully created")
+        else:
+            logger.error(
+                f"File {output_path} was not created. Check for errors in the pipeline."
+            )
+            raise HTTPException(status_code=500, detail="Internal server error saving video")
         return {"filename": output_filename}
 
     except OSError as e:
-        logger.error(f"Video processing error (OSError): {str(e)}")
-        raise HTTPException(status_code=400, detail=f"Video processing error: {str(e)}")
+        logger.error(
+            f"Video processing error (OSError): {str(e)}\n{traceback.format_exc()}"
+        )
+        raise HTTPException(status_code=400, detail="Video processing error")
     except Exception as e:
         logger.critical(
             f"Unexpected video processing error: {str(e)}\n{traceback.format_exc()}"
