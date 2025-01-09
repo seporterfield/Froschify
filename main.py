@@ -94,10 +94,16 @@ async def process_video(request: Request):
 
         return {"filename": output_filename}
 
+    except OSError as e:
+        logger.error(f"Video processing error (OSError): {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Video processing error: {str(e)}")
     except Exception as e:
-        error_msg = str(e).lower()
-        logger.critical(f"error editing video: {error_msg}\n{traceback.format_exc()}")
-        raise HTTPException(status_code=400, detail="Cannot edit video")
+        logger.critical(
+            f"Unexpected video processing error: {str(e)}\n{traceback.format_exc()}"
+        )
+        raise HTTPException(
+            status_code=500, detail="Internal server error during video processing"
+        )
 
 
 @app.get("/download/{filename}")
@@ -110,7 +116,6 @@ async def download_video(request: Request, filename: str):
 
 
 if __name__ == "__main__":
-    load_dotenv()
     port = int(os.getenv("PORT", "8000"))
     log_level = os.getenv("LOG_LEVEL", "info")
     uvicorn.run("main:app", host="127.0.0.1", port=port, log_level=log_level)
