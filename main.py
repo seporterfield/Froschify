@@ -26,7 +26,8 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("uvicorn.error")
 
-VIDEO_PATH = "videos"
+VIDEO_PATH = os.environ.get("VIDEO_PATH", "videos")
+Path(VIDEO_PATH).mkdir(mode=0o755, exist_ok=True)
 VIDEO_TOINSERT_PATH = "walterfrosch.mp4"
 BITRATE = os.getenv("BITRATE", "5000k")
 
@@ -37,8 +38,7 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
 
 # Setup templates and static files
-Path("videos").mkdir(exist_ok=True)
-app.mount("/videos", StaticFiles(directory="videos"), name="videos")
+app.mount(f"/{VIDEO_PATH}", StaticFiles(directory=VIDEO_PATH), name=VIDEO_PATH)
 templates = Jinja2Templates(directory="templates")
 
 ls_output = subprocess.check_output(["ls"]).decode("utf-8").split("\n")
