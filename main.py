@@ -21,6 +21,8 @@ from edit import insert_clip_in_middle
 from proxy import get_working_proxy
 from youtube import dl_yt_video
 
+import time
+
 load_dotenv()
 
 logging.basicConfig(level=logging.INFO)
@@ -141,6 +143,7 @@ async def download_video(request: Request, filename: str):
         )
         raise HTTPException(status_code=404, detail="Video not found")
     logger.debug(f"File exists, permissions: {oct(os.stat(video_path).st_mode)}")
+    time.sleep(5)
     return FileResponse(path=video_path, media_type="video/mp4", filename=filename)
 
 
