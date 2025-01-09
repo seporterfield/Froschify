@@ -2,7 +2,6 @@
 import logging
 import os
 import subprocess
-import time
 import traceback
 from pathlib import Path
 
@@ -134,17 +133,14 @@ async def process_video(request: Request):
 @limiter.limit("10/minute")
 async def download_video(request: Request, filename: str):
     logger.debug("Attempt seeing if video_path exists")
-    time.sleep(10)
     video_path = os.path.join(os.getcwd(), VIDEO_PATH, filename)
     logger.debug(f"{video_path = }")
     if not os.path.exists(video_path):
         logger.debug(
             f"File does not exist. Directory contents: {os.listdir(VIDEO_PATH)}"
         )
-        time.sleep(10)
         raise HTTPException(status_code=404, detail="Video not found")
     logger.debug(f"File exists, permissions: {oct(os.stat(video_path).st_mode)}")
-    time.sleep(10)
     return FileResponse(path=video_path, media_type="video/mp4", filename=filename)
 
 
