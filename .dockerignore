@@ -8,7 +8,7 @@ venv/
 .venv/
 .env
 *.mp4
-!videos/walterfrosch.mp4
+!walterfrosch.mp4
 .git
 .gitignore
 Dockerfile

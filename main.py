@@ -1,6 +1,7 @@
 # main.py
 import logging
 import os
+import subprocess
 import traceback
 from pathlib import Path
 
@@ -39,7 +40,9 @@ Path("videos").mkdir(exist_ok=True)
 app.mount("/videos", StaticFiles(directory="videos"), name="videos")
 templates = Jinja2Templates(directory="templates")
 
-# Ensure video directory exists
+ls_output = subprocess.check_output(["ls"]).decode("utf-8").split("\n")
+logger.debug(f"Files on pwd:\n{ls_output}")
+
 
 PROXY_CONNS = os.getenv("PROXY_CONNS", "").split(",")
 PROXY = (
