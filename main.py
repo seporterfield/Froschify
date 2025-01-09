@@ -27,7 +27,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("uvicorn.error")
 
 VIDEO_PATH = "videos"
-VIDEO_TOINSERT_PATH = "videos/walterfrosch.mp4"
+VIDEO_TOINSERT_PATH = "walterfrosch.mp4"
 
 limiter = Limiter(key_func=get_remote_address)
 app = FastAPI()
