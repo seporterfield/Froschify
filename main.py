@@ -78,7 +78,9 @@ async def process_video(request: Request):
 
     try:
         # Load videos
+        logger.debug(f"Loading main video from {downloaded_path}")
         main_video = VideoFileClip(downloaded_path)
+        logger.debug(f"Loading clip to insert from {VIDEO_TOINSERT_PATH}")
         video_toinsert = VideoFileClip(VIDEO_TOINSERT_PATH)
 
         # Create output filename
@@ -86,15 +88,18 @@ async def process_video(request: Request):
         output_path = os.path.join(VIDEO_PATH, output_filename)
 
         # Combine videos
+        logger.debug("Inserting video")
         final_video = insert_clip_in_middle(main_video, video_toinsert)
-        final_video.write_videofile(output_path)
+        logger.debug(f"Writing final video to {output_path}")
+        final_video.write_videofile(output_path, threads=2)
 
         # Clean up
+        logger.debug("Cleaning up resources")
         main_video.close()
         video_toinsert.close()
         final_video.close()
         os.remove(downloaded_path)  # Remove original downloaded video
-
+        logger.debug("Finished processing")
         return {"filename": output_filename}
 
     except OSError as e:
