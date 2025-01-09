@@ -2,6 +2,7 @@
 import logging
 import os
 import subprocess
+import time
 import traceback
 from pathlib import Path
 
@@ -93,7 +94,9 @@ async def process_video(request: Request):
         logger.debug("Inserting video")
         final_video = insert_clip_in_middle(main_video, video_toinsert)
         logger.debug(f"Writing final video to {output_path}")
-        final_video.write_videofile(output_path, threads=2, bitrate=BITRATE, audio_bitrate=AUDIO_BITRATE)
+        final_video.write_videofile(
+            output_path, threads=2, bitrate=BITRATE, audio_bitrate=AUDIO_BITRATE
+        )
 
         # Clean up
         logger.debug("Cleaning up resources")
@@ -108,7 +111,9 @@ async def process_video(request: Request):
             logger.error(
                 f"File {output_path} was not created. Check for errors in the pipeline."
             )
-            raise HTTPException(status_code=500, detail="Internal server error saving video")
+            raise HTTPException(
+                status_code=500, detail="Internal server error saving video"
+            )
         return {"filename": output_filename}
 
     except OSError as e:
@@ -129,12 +134,34 @@ async def process_video(request: Request):
 @limiter.limit("10/minute")
 async def download_video(request: Request, filename: str):
     logger.debug("Attempt seeing if video_path exists")
+    time.sleep(10)
     video_path = os.path.join(VIDEO_PATH, filename)
     if not os.path.exists(video_path):
-        logger.debug(f"File does not exist. Directory contents: {os.listdir(VIDEO_PATH)}")
+        logger.debug(
+            f"File does not exist. Directory contents: {os.listdir(VIDEO_PATH)}"
+        )
+        time.sleep(10)
         raise HTTPException(status_code=404, detail="Video not found")
     logger.debug(f"File exists, permissions: {oct(os.stat(video_path).st_mode)}")
+    time.sleep(10)
     return FileResponse(video_path, media_type="video/mp4", filename=filename)
+
+
+@app.get("/download2/{filename}")
+@limiter.limit("10/minute")
+async def download_video_2(request: Request, filename: str):
+    logger.debug("Attempt seeing if video_path exists")
+    time.sleep(10)
+    logger.debug("Now seeing if it exists!")
+    return os.path.join(VIDEO_PATH, filename)
+
+
+@app.get("/download3/{filename}")
+@limiter.limit("10/minute")
+async def download_video_3(request: Request, filename: str):
+    logger.debug("Aborting!")
+    time.sleep(10)
+    raise HTTPException(status_code=404, detail="Aborted")
 
 
 if __name__ == "__main__":
