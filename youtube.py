@@ -1,11 +1,11 @@
-import uuid
-from pytubefix import YouTube
-from enum import Enum
-from typing import Tuple
 import logging
 import traceback
+import uuid
+from enum import Enum
+from typing import Any, Dict, Optional, Tuple
 from urllib.parse import urlparse
-from typing import Dict, Any, Optional
+
+from pytubefix import YouTube
 
 logger = logging.getLogger("uvicorn.error")
 MAX_VIDEO_LENGTH = 300
@@ -33,11 +33,11 @@ def dl_yt_video(
     url: str, output_path: str = ".", proxies: dict[str, str] | None = None
 ) -> Tuple[str | None, YouTubeError | None]:
     if proxies:
+        logger.debug(f"Using proxies: {proxies}")
         for protocol, proxy_url in proxies.items():
             if not validate_proxy_url(proxy_url):
                 logger.error(f"Invalid proxy URL for {protocol}: {proxy_url}")
                 return None, YouTubeError.PROXY_ERROR
-        logger.debug(f"Using proxies: {proxies}")
 
     try:
         yt = DebugYouTube(url, proxies=proxies)
@@ -81,7 +81,7 @@ class DebugYouTube(YouTube):
     def __init__(self, url: str, proxies: Optional[Dict[str, str]] = None):
         super().__init__(url, proxies=proxies)
         self._debug_vid_info = None
-        
+
     @property
     def vid_info(self) -> Dict[Any, Any]:
         """
@@ -103,7 +103,9 @@ class DebugYouTube(YouTube):
                 self._debug_vid_info = result
             return result
         except Exception as e:
-            logger.error(f"Error in vid_info property: {str(e)}\n{traceback.format_exc()}")
+            logger.error(
+                f"Error in vid_info property: {str(e)}\n{traceback.format_exc()}"
+            )
             raise
 
     @vid_info.setter
@@ -126,16 +128,18 @@ class DebugYouTube(YouTube):
             if self.vid_info is None:
                 logger.error("Cannot get length - vid_info is None")
                 return None
-            
-            video_details = self.vid_info.get('videoDetails', {})
-            length_seconds = video_details.get('lengthSeconds')
-            
+
+            video_details = self.vid_info.get("videoDetails", {})
+            length_seconds = video_details.get("lengthSeconds")
+
             if length_seconds is None:
                 logger.error("lengthSeconds is None in video_details")
                 logger.error(f"Full video_details: {video_details}")
                 return None
-                
+
             return int(length_seconds)
         except Exception as e:
-            logger.error(f"Error getting video length: {str(e)}\n{traceback.format_exc()}")
+            logger.error(
+                f"Error getting video length: {str(e)}\n{traceback.format_exc()}"
+            )
             return None

@@ -1,23 +1,26 @@
 # main.py
-from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import HTMLResponse, FileResponse
-from fastapi.templating import Jinja2Templates
-from fastapi.staticfiles import StaticFiles
+import logging
 import os
-from moviepy import VideoFileClip
 import traceback
 from pathlib import Path
 
-from youtube import dl_yt_video
-from edit import insert_clip_in_middle
 import uvicorn
-import logging
 from dotenv import load_dotenv
-
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from moviepy import VideoFileClip
 from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
+from slowapi.util import get_remote_address
+
+from edit import insert_clip_in_middle
+from proxy import get_working_proxy
+from youtube import dl_yt_video
+
+load_dotenv()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("uvicorn.error")
@@ -32,13 +35,14 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
 
 # Setup templates and static files
-templates = Jinja2Templates(directory="templates")
+Path("videos").mkdir(exist_ok=True)
 app.mount("/videos", StaticFiles(directory="videos"), name="videos")
+templates = Jinja2Templates(directory="templates")
 
 # Ensure video directory exists
-Path("videos").mkdir(exist_ok=True)
 
-PROXY_CONN = os.getenv("PROXY_CONN", "")
+PROXY_CONNS = os.getenv("PROXY_CONNS", "").split(",")
+PROXY_CONN = None if not PROXY_CONNS else get_working_proxy(PROXY_CONNS)
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -58,8 +62,10 @@ async def process_video(request: Request):
     # Download YouTube video
     proxies = None
     if PROXY_CONN:
-        proxies = {"http": PROXY_CONN}
-    downloaded_path, error = dl_yt_video(youtube_url, output_path=VIDEO_PATH, proxies=proxies)
+        proxies = PROXY_CONN
+    downloaded_path, error = dl_yt_video(
+        youtube_url, output_path=VIDEO_PATH, proxies=proxies
+    )
     if error:
         raise HTTPException(status_code=400, detail=error.value)
 

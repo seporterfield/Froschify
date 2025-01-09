@@ -1,5 +1,6 @@
-from moviepy import VideoFileClip, concatenate_videoclips
 import logging
+
+from moviepy import VideoFileClip, concatenate_videoclips
 
 logger = logging.getLogger("uvicorn.error")
 
