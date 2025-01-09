@@ -30,6 +30,7 @@ VIDEO_PATH = os.environ.get("VIDEO_PATH", "videos")
 Path(VIDEO_PATH).mkdir(mode=0o755, exist_ok=True)
 VIDEO_TOINSERT_PATH = "walterfrosch.mp4"
 BITRATE = os.getenv("BITRATE", "5000k")
+AUDIO_BITRATE = os.getenv("AUDIO_BITRATE", "4098k")
 
 limiter = Limiter(key_func=get_remote_address)
 app = FastAPI()
@@ -92,7 +93,7 @@ async def process_video(request: Request):
         logger.debug("Inserting video")
         final_video = insert_clip_in_middle(main_video, video_toinsert)
         logger.debug(f"Writing final video to {output_path}")
-        final_video.write_videofile(output_path, threads=2, bitrate=BITRATE)
+        final_video.write_videofile(output_path, threads=2, bitrate=BITRATE, audio_bitrate=AUDIO_BITRATE)
 
         # Clean up
         logger.debug("Cleaning up resources")
@@ -127,6 +128,7 @@ async def process_video(request: Request):
 @app.get("/download/{filename}")
 @limiter.limit("10/minute")
 async def download_video(request: Request, filename: str):
+    logger.debug("Attempt seeing if video_path exists")
     video_path = os.path.join(VIDEO_PATH, filename)
     if not os.path.exists(video_path):
         logger.debug(f"File does not exist. Directory contents: {os.listdir(VIDEO_PATH)}")
