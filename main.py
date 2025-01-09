@@ -135,7 +135,8 @@ async def process_video(request: Request):
 async def download_video(request: Request, filename: str):
     logger.debug("Attempt seeing if video_path exists")
     time.sleep(10)
-    video_path = os.path.join(VIDEO_PATH, filename)
+    video_path = os.path.join(os.getcwd(), VIDEO_PATH, filename)
+    logger.debug(f"{video_path = }")
     if not os.path.exists(video_path):
         logger.debug(
             f"File does not exist. Directory contents: {os.listdir(VIDEO_PATH)}"
