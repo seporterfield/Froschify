@@ -42,7 +42,7 @@ templates = Jinja2Templates(directory="templates")
 # Ensure video directory exists
 
 PROXY_CONNS = os.getenv("PROXY_CONNS", "").split(",")
-PROXY_CONN = (
+PROXY = (
     None
     if not PROXY_CONNS or PROXY_CONNS[0].strip() == ""
     else get_working_proxy(PROXY_CONNS)
@@ -65,8 +65,8 @@ async def process_video(request: Request):
 
     # Download YouTube video
     proxies = None
-    if PROXY_CONN:
-        proxies = PROXY_CONN
+    if PROXY:
+        proxies = PROXY
     downloaded_path, error = dl_yt_video(
         youtube_url, output_path=VIDEO_PATH, proxies=proxies
     )
@@ -97,7 +97,7 @@ async def process_video(request: Request):
     except Exception as e:
         error_msg = str(e).lower()
         logger.critical(f"error editing video: {error_msg}\n{traceback.format_exc()}")
-        raise HTTPException(status_code=500)
+        raise HTTPException(status_code=400, detail="Cannot edit video")
 
 
 @app.get("/download/{filename}")

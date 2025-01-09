@@ -25,7 +25,8 @@ def validate_proxy_url(proxy_url: str) -> bool:
     try:
         parsed = urlparse(proxy_url)
         return all([parsed.scheme, parsed.netloc])
-    except Exception:
+    except Exception as e:
+        logger.debug(f"Invalid proxy url: {proxy_url}\n{traceback.format_exc()}")
         return False
 
 
