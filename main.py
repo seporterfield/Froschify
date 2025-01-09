@@ -144,7 +144,7 @@ async def download_video(request: Request, filename: str):
         raise HTTPException(status_code=404, detail="Video not found")
     logger.debug(f"File exists, permissions: {oct(os.stat(video_path).st_mode)}")
     time.sleep(10)
-    return FileResponse(video_path, media_type="video/mp4", filename=filename)
+    return FileResponse(path=video_path, media_type="video/mp4", filename=filename)
 
 
 if __name__ == "__main__":
