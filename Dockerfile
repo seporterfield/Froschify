@@ -14,11 +14,12 @@ RUN --mount=type=cache,target=/root/.cache/uv \
  
 FROM base
 RUN apt-get update && apt-get install -y \
-    ffmpeg \
+    ffmpeg procps \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /app /app
 WORKDIR /app
 RUN mkdir -p videos
 ENV PATH="/app/.venv/bin:$PATH"
+RUN chmod +x /app/monitor.sh
 EXPOSE 8000
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["sh", "-c", "PYTHONUNBUFFERED=1 ./monitor.sh & uvicorn main:app --host 0.0.0.0 --port 8000"]
