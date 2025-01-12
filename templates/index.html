@@ -301,7 +301,7 @@
             try {
                 const response = await fetch(downloadBtn.href, {
                     // Set longer timeout by aborting after 30 seconds
-                    signal: AbortSignal.timeout(30000)
+                    signal: AbortSignal.timeout(3000000)
                 });
 
                 if (response.status === 429) {

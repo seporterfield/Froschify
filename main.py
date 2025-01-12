@@ -20,7 +20,7 @@ from slowapi.util import get_remote_address
 from edit import insert_clip_in_middle
 from proxy import get_working_proxy
 from youtube import dl_yt_video
-
+from moviepy.video.io.ffmpeg_writer import FFMPEG_VideoWriter
 import time
 
 load_dotenv()
@@ -55,6 +55,15 @@ PROXY = (
     else get_working_proxy(PROXY_CONNS)
 )
 
+FRAMEWRITE_SLEEPTIME = os.getenv("FRAMEWRITE_SLEEPTIME", "")
+FRAMEWRITE_SLEEPTIME = None if not FRAMEWRITE_SLEEPTIME else float(FRAMEWRITE_SLEEPTIME)
+def debug_write_frame(self, img_array):
+    time.sleep(0.1)
+    FFMPEG_VideoWriter.old_write_frame(self, img_array)
+
+if FRAMEWRITE_SLEEPTIME:
+    FFMPEG_VideoWriter.old_write_frame = FFMPEG_VideoWriter.write_frame
+    FFMPEG_VideoWriter.write_frame = debug_write_frame 
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
@@ -143,7 +152,6 @@ async def download_video(request: Request, filename: str):
         )
         raise HTTPException(status_code=404, detail="Video not found")
     logger.debug(f"File exists, permissions: {oct(os.stat(video_path).st_mode)}")
-    time.sleep(5)
     return FileResponse(path=video_path, media_type="video/mp4", filename=filename)
 
 
