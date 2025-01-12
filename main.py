@@ -23,7 +23,8 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("uvicorn.error")
 
-VIDEO_FOLDER = os.environ.get("VIDEO_PATH", "videos")
+MAX_VIDEO_LENGTH = int(os.getenv("MAX_VIDEO_LENGTH", "300"))
+VIDEO_FOLDER = os.getenv("VIDEO_PATH", "videos")
 Path(VIDEO_FOLDER).mkdir(mode=0o755, exist_ok=True)
 VIDEO_TOINSERT_PATH = "walterfrosch.mp4"
 BITRATE = os.getenv("BITRATE", "5000k")
@@ -71,17 +72,22 @@ async def process_video(request: Request):
     youtube_url = form_data.get("youtube_url")
 
     if not youtube_url:
-        raise HTTPException(status_code=400, detail="YouTube URL is required")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="YouTube URL is required"
+        )
 
     # Download YouTube video
     proxies = None
     if PROXY:
         proxies = PROXY
     downloaded_path, error = dl_yt_video(
-        youtube_url, output_path=VIDEO_FOLDER, proxies=proxies
+        youtube_url,
+        output_path=VIDEO_FOLDER,
+        proxies=proxies,
+        max_video_length=MAX_VIDEO_LENGTH,
     )
     if error:
-        raise HTTPException(status_code=400, detail=error.value)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error.value)
 
     output_filename, error = insert_video_in_middle(
         video_path=downloaded_path,
@@ -92,7 +98,7 @@ async def process_video(request: Request):
     )
 
     if error:
-        raise HTTPException(status_code=400, detail=error.value)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error.value)
     os.remove(downloaded_path)  # Remove original downloaded video
     if os.path.exists(os.path.join(VIDEO_FOLDER, output_filename)):
         logger.debug(f"File {output_filename} successfully created")
@@ -100,6 +106,7 @@ async def process_video(request: Request):
         logger.error(
             f"File {output_filename} was not created. Check for errors in the pipeline."
         )
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     return {"filename": output_filename}
 

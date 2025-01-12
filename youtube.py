@@ -13,7 +13,6 @@ from pytubefix import YouTube
 from edit import insert_clip_in_middle
 
 logger = logging.getLogger("uvicorn.error")
-MAX_VIDEO_LENGTH = 300
 
 
 class YouTubeError(Enum):
@@ -81,12 +80,17 @@ def validate_proxy_url(proxy_url: str) -> bool:
         parsed = urlparse(proxy_url)
         return all([parsed.scheme, parsed.netloc])
     except Exception as e:
-        logger.debug(f"Invalid proxy url: {proxy_url}\n{str(e)}\n{traceback.format_exc()}")
+        logger.debug(
+            f"Invalid proxy url: {proxy_url}\n{str(e)}\n{traceback.format_exc()}"
+        )
         return False
 
 
 def dl_yt_video(
-    url: str, output_path: str = ".", proxies: dict[str, str] | None = None
+    url: str,
+    output_path: str = ".",
+    proxies: dict[str, str] | None = None,
+    max_video_length: int = -1,
 ) -> Tuple[str | None, YouTubeError | None]:
     if proxies:
         logger.debug(f"Using proxies: {proxies}")
@@ -101,10 +105,10 @@ def dl_yt_video(
         # Check if video is available (pytubefix will handle this internally)
         logger.debug(f"Video ID: {yt.video_id}")
 
-        if yt.length is None:
+        if not yt.length:
             logger.critical("couldn't get all video info, aborting")
             return None, YouTubeError.UNAVAILABLE
-        if yt.length > MAX_VIDEO_LENGTH:
+        if yt.length > max_video_length and max_video_length != -1:
             logger.debug("Video too long")
             return None, YouTubeError.TOO_LONG
 
@@ -135,24 +139,27 @@ def dl_yt_video(
             )
             return None, YouTubeError.HTTP_ERROR
 
+
 class MilestoneLogger(proglog.ProgressBarLogger):
     def __init__(self, milestones=(0, 25, 50, 75, 95)):
         super().__init__()
         self.milestones = sorted(milestones)
         self.next_milestone_index = 0
-        
+
     def bars_callback(self, bar_name, attr, value, old_value, **kwargs):
         if attr != "frame_index":  # Only process frame_index updates
             return
-            
-        total = self.bars[bar_name]['total']
+
+        total = self.bars[bar_name]["total"]
         if total == 0:
             return
-            
+
         current_percentage = (value / total) * 100
-        
+
         # Check if we've hit our next milestone
-        while (self.next_milestone_index < len(self.milestones) and 
-               current_percentage >= self.milestones[self.next_milestone_index]):
+        while (
+            self.next_milestone_index < len(self.milestones)
+            and current_percentage >= self.milestones[self.next_milestone_index]
+        ):
             print(f"Progress: {self.milestones[self.next_milestone_index]}%")
             self.next_milestone_index += 1
