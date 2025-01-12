@@ -2,10 +2,11 @@
 import logging
 import os
 import subprocess
+import time
 import traceback
 from pathlib import Path
-import anyio
 
+import anyio
 import uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request, status
@@ -13,6 +14,7 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from moviepy import VideoFileClip
+from moviepy.video.io.ffmpeg_writer import FFMPEG_VideoWriter
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
@@ -21,8 +23,6 @@ from slowapi.util import get_remote_address
 from edit import insert_clip_in_middle
 from proxy import get_working_proxy
 from youtube import dl_yt_video
-from moviepy.video.io.ffmpeg_writer import FFMPEG_VideoWriter
-import time
 
 load_dotenv()
 
@@ -85,6 +85,9 @@ async def debug_handle_simple(self, send, send_header_only: bool) -> None:
 if FILERESPONSE_SLEEPTIME:
     FileResponse.old_handle_simple = FileResponse._handle_simple
     FileResponse._handle_simple = debug_handle_simple
+
+VIDEO_WRITE_LOGGER = os.getenv("VIDEO_WRITE_LOGGER", "")
+VIDEO_WRITE_LOGGER = "bar" if VIDEO_WRITE_LOGGER == "bar" else None
     
         
 
@@ -133,7 +136,7 @@ async def process_video(request: Request):
         final_video = insert_clip_in_middle(main_video, video_toinsert)
         logger.debug(f"Writing final video to {output_path}")
         final_video.write_videofile(
-            output_path, threads=2, bitrate=BITRATE, audio_bitrate=AUDIO_BITRATE
+            output_path, threads=2, bitrate=BITRATE, audio_bitrate=AUDIO_BITRATE, logger=VIDEO_WRITE_LOGGER
         )
 
         # Clean up
