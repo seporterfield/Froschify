@@ -6,11 +6,11 @@ from enum import Enum
 from typing import Tuple
 from urllib.parse import urlparse
 
-import proglog
-from moviepy import VideoFileClip
-from pytubefix import YouTube
+import proglog # type: ignore
+from moviepy import VideoFileClip # type: ignore
+from pytubefix import YouTube # type: ignore
 
-from edit import insert_clip_in_middle
+from src.edit import insert_clip_in_middle
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -155,6 +155,11 @@ class MilestoneLogger(proglog.ProgressBarLogger):
 
         current_percentage = (value / total) * 100
         # Check if we've hit our next milestone
-        if self.next_milestone_index < len(self.milestones) and current_percentage >= self.milestones[self.next_milestone_index]:
-            logger.debug(f"Progress: {self.milestones[self.next_milestone_index]}% -- {bar_name}")
+        if (
+            self.next_milestone_index < len(self.milestones)
+            and current_percentage >= self.milestones[self.next_milestone_index]
+        ):
+            logger.debug(
+                f"Progress: {self.milestones[self.next_milestone_index]}% -- {bar_name}"
+            )
             self.next_milestone_index += 1

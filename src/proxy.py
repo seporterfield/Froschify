@@ -63,3 +63,4 @@ def get_host_ip() -> str:
         return response.text.strip()
     except Exception as e:
         logger.debug(f"error getting host ip: {e}\n{traceback.format_exc()}")
+        raise e

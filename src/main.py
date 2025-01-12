@@ -1,7 +1,6 @@
 # main.py
 import logging
 import os
-import subprocess
 from pathlib import Path
 
 import uvicorn
@@ -15,8 +14,8 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from slowapi.util import get_remote_address
 
-from proxy import get_working_proxy
-from youtube import dl_yt_video, insert_video_in_middle
+from src.proxy import get_working_proxy
+from src.youtube import dl_yt_video, insert_video_in_middle
 
 load_dotenv()
 
@@ -32,7 +31,7 @@ Path(VIDEO_FOLDER).mkdir(mode=0o755, exist_ok=True)
 BITRATE = os.getenv("BITRATE", "5000k")
 AUDIO_BITRATE = os.getenv("AUDIO_BITRATE", "4098k")
 
-VIDEO_WRITE_LOGGER = os.getenv("VIDEO_WRITE_LOGGER", "")
+VIDEO_WRITE_LOGGER: str | None = os.getenv("VIDEO_WRITE_LOGGER", "")
 VIDEO_WRITE_LOGGER = "bar" if VIDEO_WRITE_LOGGER == "bar" else None
 
 PROXY_CONNS = os.getenv("PROXY_CONNS", "").split(",")
@@ -45,12 +44,13 @@ PROXY = (
 limiter = Limiter(key_func=get_remote_address)
 app = FastAPI()
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore
 app.add_middleware(SlowAPIMiddleware)
 
 # Setup templates and static files
 app.mount(f"/{VIDEO_FOLDER}", StaticFiles(directory=VIDEO_FOLDER), name=VIDEO_FOLDER)
 templates = Jinja2Templates(directory="templates")
+
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
@@ -78,7 +78,7 @@ async def process_video(request: Request):
     if PROXY:
         proxies = PROXY
     downloaded_path, error = dl_yt_video(
-        youtube_url,
+        url=youtube_url,
         output_path=VIDEO_FOLDER,
         proxies=proxies,
         max_video_length=MAX_VIDEO_LENGTH,
