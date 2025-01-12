@@ -2,10 +2,11 @@
 import logging
 import os
 from pathlib import Path
+from typing import Annotated
 
 import uvicorn
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Request, status
+from fastapi import FastAPI, HTTPException, Request, status, Form
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -64,21 +65,12 @@ async def health(request: Request):
 
 @app.post("/process")
 @limiter.limit("2/minute")
-async def process_video(request: Request):
-    form_data = await request.form()
-    youtube_url = form_data.get("youtube_url")
-
-    if not youtube_url:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="YouTube URL is required"
-        )
-
-    # Download YouTube video
+async def process_video(request: Request, youtube_url: Annotated[str, Form()]):
     proxies = None
     if PROXY:
         proxies = PROXY
     downloaded_path, error = dl_yt_video(
-        url=youtube_url,
+        url=str(youtube_url),
         output_path=VIDEO_FOLDER,
         proxies=proxies,
         max_video_length=MAX_VIDEO_LENGTH,
