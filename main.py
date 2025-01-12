@@ -4,6 +4,7 @@ import os
 import subprocess
 import traceback
 from pathlib import Path
+import anyio
 
 import uvicorn
 from dotenv import load_dotenv
@@ -58,12 +59,33 @@ PROXY = (
 FRAMEWRITE_SLEEPTIME = os.getenv("FRAMEWRITE_SLEEPTIME", "")
 FRAMEWRITE_SLEEPTIME = None if not FRAMEWRITE_SLEEPTIME else float(FRAMEWRITE_SLEEPTIME)
 def debug_write_frame(self, img_array):
-    time.sleep(0.1)
+    time.sleep(FRAMEWRITE_SLEEPTIME)
     FFMPEG_VideoWriter.old_write_frame(self, img_array)
 
 if FRAMEWRITE_SLEEPTIME:
     FFMPEG_VideoWriter.old_write_frame = FFMPEG_VideoWriter.write_frame
     FFMPEG_VideoWriter.write_frame = debug_write_frame 
+
+FILERESPONSE_SLEEPTIME = os.getenv("FILERESPONSE_SLEEPTIME", "")
+FILERESPONSE_SLEEPTIME = None if not FILERESPONSE_SLEEPTIME else float(FILERESPONSE_SLEEPTIME)
+async def debug_handle_simple(self, send, send_header_only: bool) -> None:
+        await send({"type": "http.response.start", "status": self.status_code, "headers": self.raw_headers})
+        if send_header_only:
+            await send({"type": "http.response.body", "body": b"", "more_body": False})
+        else:
+            async with await anyio.open_file(self.path, mode="rb") as file:
+                more_body = True
+                while more_body:
+                    await anyio.sleep(FILERESPONSE_SLEEPTIME)
+                    chunk = await file.read(self.chunk_size)
+                    more_body = len(chunk) == self.chunk_size
+                    await send({"type": "http.response.body", "body": chunk, "more_body": more_body})
+if FILERESPONSE_SLEEPTIME:
+    FileResponse.old_handle_simple = FileResponse._handle_simple
+    FileResponse._handle_simple = debug_handle_simple
+    
+        
+
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
