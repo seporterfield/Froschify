@@ -24,11 +24,23 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("uvicorn.error")
 
 MAX_VIDEO_LENGTH = int(os.getenv("MAX_VIDEO_LENGTH", "300"))
+
+VIDEO_TOINSERT_PATH = os.getenv("VIDEO_TOINSERT_PATH", "walterfrosch.mp4")
 VIDEO_FOLDER = os.getenv("VIDEO_PATH", "videos")
 Path(VIDEO_FOLDER).mkdir(mode=0o755, exist_ok=True)
-VIDEO_TOINSERT_PATH = "walterfrosch.mp4"
+
 BITRATE = os.getenv("BITRATE", "5000k")
 AUDIO_BITRATE = os.getenv("AUDIO_BITRATE", "4098k")
+
+VIDEO_WRITE_LOGGER = os.getenv("VIDEO_WRITE_LOGGER", "")
+VIDEO_WRITE_LOGGER = "bar" if VIDEO_WRITE_LOGGER == "bar" else None
+
+PROXY_CONNS = os.getenv("PROXY_CONNS", "").split(",")
+PROXY = (
+    None
+    if not PROXY_CONNS or PROXY_CONNS[0].strip() == ""
+    else get_working_proxy(PROXY_CONNS)
+)
 
 limiter = Limiter(key_func=get_remote_address)
 app = FastAPI()
@@ -39,21 +51,6 @@ app.add_middleware(SlowAPIMiddleware)
 # Setup templates and static files
 app.mount(f"/{VIDEO_FOLDER}", StaticFiles(directory=VIDEO_FOLDER), name=VIDEO_FOLDER)
 templates = Jinja2Templates(directory="templates")
-
-ls_output = subprocess.check_output(["ls"]).decode("utf-8").split("\n")
-logger.debug(f"Files on pwd:\n{ls_output}")
-
-
-PROXY_CONNS = os.getenv("PROXY_CONNS", "").split(",")
-PROXY = (
-    None
-    if not PROXY_CONNS or PROXY_CONNS[0].strip() == ""
-    else get_working_proxy(PROXY_CONNS)
-)
-
-VIDEO_WRITE_LOGGER = os.getenv("VIDEO_WRITE_LOGGER", "")
-VIDEO_WRITE_LOGGER = "bar" if VIDEO_WRITE_LOGGER == "bar" else None
-
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
