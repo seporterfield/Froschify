@@ -17,4 +17,4 @@ RUN mkdir -p videos && chmod +x monitor.sh
 ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONUNBUFFERED=1
 EXPOSE 8000
-CMD ["sh", "-c", "./monitor.sh & uvicorn main:app --host 0.0.0.0 --port 8000"]
+CMD ["sh", "-c", "./monitor.sh & uvicorn main:app --host 0.0.0.0 --port 8000 --workers 2"]

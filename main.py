@@ -8,7 +8,7 @@ import anyio
 
 import uvicorn
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -92,6 +92,10 @@ if FILERESPONSE_SLEEPTIME:
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
+
+@app.get("/healthz", status_code=status.HTTP_200_OK)
+async def health(request: Request):
+    return "OK"
 
 
 @app.post("/process")
