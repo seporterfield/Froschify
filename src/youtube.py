@@ -6,9 +6,9 @@ from enum import Enum
 from typing import Tuple
 from urllib.parse import urlparse
 
-import proglog # type: ignore
-from moviepy import VideoFileClip # type: ignore
-from pytubefix import YouTube # type: ignore
+import proglog  # type: ignore
+from moviepy import VideoFileClip  # type: ignore
+from pytubefix import YouTube  # type: ignore
 
 from src.edit import insert_clip_in_middle
 

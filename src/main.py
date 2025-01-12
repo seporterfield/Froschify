@@ -6,7 +6,7 @@ from typing import Annotated
 
 import uvicorn
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Request, status, Form
+from fastapi import FastAPI, Form, HTTPException, Request, status
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -77,6 +77,8 @@ async def process_video(request: Request, youtube_url: Annotated[str, Form()]):
     )
     if error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error.value)
+    if not downloaded_path:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     output_filename, error = insert_video_in_middle(
         video_path=downloaded_path,
@@ -88,6 +90,8 @@ async def process_video(request: Request, youtube_url: Annotated[str, Form()]):
 
     if error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error.value)
+    if not output_filename:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
     os.remove(downloaded_path)  # Remove original downloaded video
     if os.path.exists(os.path.join(VIDEO_FOLDER, output_filename)):
         logger.debug(f"File {output_filename} successfully created")
