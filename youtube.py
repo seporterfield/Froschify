@@ -150,9 +150,11 @@ class MilestoneLogger(proglog.ProgressBarLogger):
         total = self.bars[bar_name]["total"]
         if total == 0:
             return
+        if value == 0:
+            self.next_milestone_index = 0
 
         current_percentage = (value / total) * 100
         # Check if we've hit our next milestone
         if self.next_milestone_index < len(self.milestones) and current_percentage >= self.milestones[self.next_milestone_index]:
-            logger.debug(f"Progress: {self.milestones[self.next_milestone_index]}%")
+            logger.debug(f"Progress: {self.milestones[self.next_milestone_index]}% -- {bar_name}")
             self.next_milestone_index += 1
