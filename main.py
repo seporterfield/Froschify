@@ -59,6 +59,7 @@ PROXY = (
 FRAMEWRITE_SLEEPTIME = os.getenv("FRAMEWRITE_SLEEPTIME", "")
 FRAMEWRITE_SLEEPTIME = None if not FRAMEWRITE_SLEEPTIME else float(FRAMEWRITE_SLEEPTIME)
 def debug_write_frame(self, img_array):
+    logger.debug("writing frame")
     time.sleep(FRAMEWRITE_SLEEPTIME)
     FFMPEG_VideoWriter.old_write_frame(self, img_array)
 
@@ -76,6 +77,7 @@ async def debug_handle_simple(self, send, send_header_only: bool) -> None:
             async with await anyio.open_file(self.path, mode="rb") as file:
                 more_body = True
                 while more_body:
+                    logger.debug("writing chunk")
                     await anyio.sleep(FILERESPONSE_SLEEPTIME)
                     chunk = await file.read(self.chunk_size)
                     more_body = len(chunk) == self.chunk_size
