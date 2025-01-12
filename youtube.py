@@ -147,19 +147,12 @@ class MilestoneLogger(proglog.ProgressBarLogger):
         self.next_milestone_index = 0
 
     def bars_callback(self, bar_name, attr, value, old_value, **kwargs):
-        if attr != "frame_index":  # Only process frame_index updates
-            return
-
         total = self.bars[bar_name]["total"]
         if total == 0:
             return
 
         current_percentage = (value / total) * 100
-
         # Check if we've hit our next milestone
-        while (
-            self.next_milestone_index < len(self.milestones)
-            and current_percentage >= self.milestones[self.next_milestone_index]
-        ):
-            print(f"Progress: {self.milestones[self.next_milestone_index]}%")
+        if self.next_milestone_index < len(self.milestones) and current_percentage >= self.milestones[self.next_milestone_index]:
+            logger.debug(f"Progress: {self.milestones[self.next_milestone_index]}%")
             self.next_milestone_index += 1
