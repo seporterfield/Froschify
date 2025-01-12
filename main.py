@@ -2,7 +2,6 @@
 import logging
 import os
 import subprocess
-import traceback
 from pathlib import Path
 
 import uvicorn
@@ -11,23 +10,21 @@ from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from moviepy import VideoFileClip
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from slowapi.util import get_remote_address
 
-from edit import insert_clip_in_middle
 from proxy import get_working_proxy
-from youtube import dl_yt_video
+from youtube import dl_yt_video, insert_video_in_middle
 
 load_dotenv()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("uvicorn.error")
 
-VIDEO_PATH = os.environ.get("VIDEO_PATH", "videos")
-Path(VIDEO_PATH).mkdir(mode=0o755, exist_ok=True)
+VIDEO_FOLDER = os.environ.get("VIDEO_PATH", "videos")
+Path(VIDEO_FOLDER).mkdir(mode=0o755, exist_ok=True)
 VIDEO_TOINSERT_PATH = "walterfrosch.mp4"
 BITRATE = os.getenv("BITRATE", "5000k")
 AUDIO_BITRATE = os.getenv("AUDIO_BITRATE", "4098k")
@@ -39,7 +36,7 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
 
 # Setup templates and static files
-app.mount(f"/{VIDEO_PATH}", StaticFiles(directory=VIDEO_PATH), name=VIDEO_PATH)
+app.mount(f"/{VIDEO_FOLDER}", StaticFiles(directory=VIDEO_FOLDER), name=VIDEO_FOLDER)
 templates = Jinja2Templates(directory="templates")
 
 ls_output = subprocess.check_output(["ls"]).decode("utf-8").split("\n")
@@ -81,75 +78,41 @@ async def process_video(request: Request):
     if PROXY:
         proxies = PROXY
     downloaded_path, error = dl_yt_video(
-        youtube_url, output_path=VIDEO_PATH, proxies=proxies
+        youtube_url, output_path=VIDEO_FOLDER, proxies=proxies
     )
     if error:
         raise HTTPException(status_code=400, detail=error.value)
 
-    try:
-        # Load videos
-        logger.debug(f"Loading main video from {downloaded_path}")
-        main_video = VideoFileClip(downloaded_path)
-        logger.debug(f"Loading clip to insert from {VIDEO_TOINSERT_PATH}")
-        video_toinsert = VideoFileClip(VIDEO_TOINSERT_PATH)
+    output_filename, error = insert_video_in_middle(
+        video_path=downloaded_path,
+        video_toinsert_path=VIDEO_TOINSERT_PATH,
+        video_folder=VIDEO_FOLDER,
+        bitrate=BITRATE,
+        audio_bitrate=AUDIO_BITRATE,
+    )
 
-        # Create output filename
-        output_filename = f"combined_{os.path.basename(downloaded_path)}"
-        output_path = os.path.join(VIDEO_PATH, output_filename)
-
-        # Combine videos
-        logger.debug("Inserting video")
-        final_video = insert_clip_in_middle(main_video, video_toinsert)
-        logger.debug(f"Writing final video to {output_path}")
-        final_video.write_videofile(
-            output_path,
-            threads=2,
-            bitrate=BITRATE,
-            audio_bitrate=AUDIO_BITRATE,
-            logger=VIDEO_WRITE_LOGGER,
-        )
-
-        # Clean up
-        logger.debug("Cleaning up resources")
-        main_video.close()
-        video_toinsert.close()
-        final_video.close()
-        os.remove(downloaded_path)  # Remove original downloaded video
-        logger.debug("Finished processing")
-        if os.path.exists(output_path):
-            logger.debug(f"File {output_path} successfully created")
-        else:
-            logger.error(
-                f"File {output_path} was not created. Check for errors in the pipeline."
-            )
-            raise HTTPException(
-                status_code=500, detail="Internal server error saving video"
-            )
-        return {"filename": output_filename}
-
-    except OSError as e:
+    if error:
+        raise HTTPException(status_code=400, detail=error.value)
+    os.remove(downloaded_path)  # Remove original downloaded video
+    if os.path.exists(os.path.join(VIDEO_FOLDER, output_filename)):
+        logger.debug(f"File {output_filename} successfully created")
+    else:
         logger.error(
-            f"Video processing error (OSError): {str(e)}\n{traceback.format_exc()}"
+            f"File {output_filename} was not created. Check for errors in the pipeline."
         )
-        raise HTTPException(status_code=400, detail="Video processing error")
-    except Exception as e:
-        logger.critical(
-            f"Unexpected video processing error: {str(e)}\n{traceback.format_exc()}"
-        )
-        raise HTTPException(
-            status_code=500, detail="Internal server error during video processing"
-        )
+
+    return {"filename": output_filename}
 
 
 @app.get("/download/{filename}")
 @limiter.limit("10/minute")
 async def download_video(request: Request, filename: str):
     logger.debug("Attempt seeing if video_path exists")
-    video_path = os.path.join(os.getcwd(), VIDEO_PATH, filename)
+    video_path = os.path.join(os.getcwd(), VIDEO_FOLDER, filename)
     logger.debug(f"{video_path = }")
     if not os.path.exists(video_path):
         logger.debug(
-            f"File does not exist. Directory contents: {os.listdir(VIDEO_PATH)}"
+            f"File does not exist. Directory contents: {os.listdir(VIDEO_FOLDER)}"
         )
         raise HTTPException(status_code=404, detail="Video not found")
     logger.debug(f"File exists, permissions: {oct(os.stat(video_path).st_mode)}")

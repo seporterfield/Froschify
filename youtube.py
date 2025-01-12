@@ -1,23 +1,78 @@
 import logging
+import os
 import traceback
 import uuid
 from enum import Enum
-from typing import Any, Dict, Optional, Tuple
+from typing import Tuple
 from urllib.parse import urlparse
 
+import proglog
+from moviepy import VideoFileClip
 from pytubefix import YouTube
+
+from edit import insert_clip_in_middle
 
 logger = logging.getLogger("uvicorn.error")
 MAX_VIDEO_LENGTH = 300
 
 
 class YouTubeError(Enum):
+    # dl_yt_video
     INVALID_URL = "Invalid YouTube URL format"
     UNAVAILABLE = "Video is unavailable"
     TOO_LONG = "Video exceeds maximum length of 5 minutes"
     HTTP_ERROR = "Could not access video URL"
     RATE_LIMIT = "YouTube rate limit exceeded"
     PROXY_ERROR = "Proxy connection failed"
+
+    # insert_video_in_middle
+    PROCESSING = "Video processing error"
+
+
+def insert_video_in_middle(
+    video_path: str, video_toinsert_path: str, video_folder: str, bitrate, audio_bitrate
+) -> Tuple[str | None, YouTubeError | None]:
+    try:
+        # Load videos
+        logger.debug(f"Loading main video from {video_path}")
+        main_video = VideoFileClip(video_path)
+        logger.debug(f"Loading clip to insert from {video_toinsert_path}")
+        video_toinsert = VideoFileClip(video_toinsert_path)
+
+        # Create output filename
+        output_filename = f"combined_{os.path.basename(video_path)}"
+        output_path = os.path.join(video_folder, output_filename)
+
+        # Combine videos
+        logger.debug("Inserting video")
+        final_video = insert_clip_in_middle(main_video, video_toinsert)
+        logger.debug(f"Writing final video to {output_path}")
+        final_video.write_videofile(
+            output_path,
+            threads=2,
+            bitrate=bitrate,
+            audio_bitrate=audio_bitrate,
+            logger=MilestoneLogger(),
+        )
+
+        # Clean up
+        logger.debug("Cleaning up resources")
+        main_video.close()
+        video_toinsert.close()
+        final_video.close()
+        logger.debug("Finished processing")
+        return output_filename, None
+
+    except OSError as e:
+        logger.error(
+            f"Video processing error (OSError): {str(e)}\n{traceback.format_exc()}"
+        )
+        return None, YouTubeError.PROCESSING
+    except Exception as e:
+        logger.critical(
+            f"Unexpected video processing error: {str(e)}\n{traceback.format_exc()}"
+        )
+        return None, YouTubeError.PROCESSING
 
 
 def validate_proxy_url(proxy_url: str) -> bool:
@@ -26,7 +81,7 @@ def validate_proxy_url(proxy_url: str) -> bool:
         parsed = urlparse(proxy_url)
         return all([parsed.scheme, parsed.netloc])
     except Exception as e:
-        logger.debug(f"Invalid proxy url: {proxy_url}\n{traceback.format_exc()}")
+        logger.debug(f"Invalid proxy url: {proxy_url}\n{str(e)}\n{traceback.format_exc()}")
         return False
 
 
@@ -41,15 +96,15 @@ def dl_yt_video(
                 return None, YouTubeError.PROXY_ERROR
 
     try:
-        yt = DebugYouTube(url, proxies=proxies)
+        yt = YouTube(url, proxies=proxies)
 
         # Check if video is available (pytubefix will handle this internally)
         logger.debug(f"Video ID: {yt.video_id}")
 
-        if yt.length() is None:
+        if yt.length is None:
             logger.critical("couldn't get all video info, aborting")
             return None, YouTubeError.UNAVAILABLE
-        if yt.length() > MAX_VIDEO_LENGTH:
+        if yt.length > MAX_VIDEO_LENGTH:
             logger.debug("Video too long")
             return None, YouTubeError.TOO_LONG
 
@@ -80,71 +135,24 @@ def dl_yt_video(
             )
             return None, YouTubeError.HTTP_ERROR
 
-
-class DebugYouTube(YouTube):
-    def __init__(self, url: str, proxies: Optional[Dict[str, str]] = None):
-        super().__init__(url, proxies=proxies)
-        self._debug_vid_info = None
-
-    @property
-    def vid_info(self) -> Dict[Any, Any]:
-        """
-        Override vid_info to catch and log when it's being set to None
-        """
-        try:
-            result = super().vid_info
-            logger.debug(f"Playability status: {result['playabilityStatus']}")
-            if result is None:
-                logger.error("vid_info is None!")
-                # Log the current state
-                logger.error(f"Video ID: {self.video_id}")
-                logger.error(f"Client: {self.client}")
-                logger.error(f"Raw vid_info: {self._vid_info}")
-                # Store the last non-None value for debugging
-                if self._debug_vid_info is not None:
-                    logger.error(f"Last valid vid_info was: {self._debug_vid_info}")
-            else:
-                # Store valid response for debugging
-                self._debug_vid_info = result
-            return result
-        except Exception as e:
-            logger.error(
-                f"Error in vid_info property: {str(e)}\n{traceback.format_exc()}"
-            )
-            raise
-
-    @vid_info.setter
-    def vid_info(self, value):
-        """
-        Override vid_info setter to catch when it's being set to None
-        """
-        if value is None:
-            logger.error("Attempting to set vid_info to None!")
-            logger.error(f"Current client: {self.client}")
-            # Get the current stack trace
-            logger.error("Stack trace:\n" + traceback.format_stack()[-2])
-        self._vid_info = value
-
-    def length(self) -> Optional[int]:
-        """
-        Override length to handle None values more gracefully
-        """
-        try:
-            if self.vid_info is None:
-                logger.error("Cannot get length - vid_info is None")
-                return None
-
-            video_details = self.vid_info.get("videoDetails", {})
-            length_seconds = video_details.get("lengthSeconds")
-
-            if length_seconds is None:
-                logger.error("lengthSeconds is None in video_details")
-                logger.error(f"Full video_details: {video_details}")
-                return None
-
-            return int(length_seconds)
-        except Exception as e:
-            logger.error(
-                f"Error getting video length: {str(e)}\n{traceback.format_exc()}"
-            )
-            return None
+class MilestoneLogger(proglog.ProgressBarLogger):
+    def __init__(self, milestones=(0, 25, 50, 75, 95)):
+        super().__init__()
+        self.milestones = sorted(milestones)
+        self.next_milestone_index = 0
+        
+    def bars_callback(self, bar_name, attr, value, old_value, **kwargs):
+        if attr != "frame_index":  # Only process frame_index updates
+            return
+            
+        total = self.bars[bar_name]['total']
+        if total == 0:
+            return
+            
+        current_percentage = (value / total) * 100
+        
+        # Check if we've hit our next milestone
+        while (self.next_milestone_index < len(self.milestones) and 
+               current_percentage >= self.milestones[self.next_milestone_index]):
+            print(f"Progress: {self.milestones[self.next_milestone_index]}%")
+            self.next_milestone_index += 1
