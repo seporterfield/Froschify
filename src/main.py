@@ -70,7 +70,7 @@ async def process_video(request: Request, youtube_url: Annotated[str, Form()]):
     if PROXY:
         proxies = PROXY
     downloaded_path, error = dl_yt_video(
-        url=str(youtube_url),
+        url=youtube_url,
         output_path=VIDEO_FOLDER,
         proxies=proxies,
         max_video_length=MAX_VIDEO_LENGTH,
