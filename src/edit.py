@@ -6,6 +6,7 @@ from typing import Any, Tuple
 
 import proglog  # type: ignore
 from moviepy import VideoFileClip, concatenate_videoclips  # type: ignore
+from proglog import ProgressLogger
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -27,6 +28,7 @@ def insert_video_in_middle(
     video_folder: str,
     bitrate: str,
     audio_bitrate: str,
+    video_write_logger: str | None = None,
 ) -> Tuple[str | None, Enum | None]:
     try:
         # Load videos
@@ -43,7 +45,11 @@ def insert_video_in_middle(
         logger.debug("Inserting video")
         final_video = insert_clip_in_middle(main_video, video_toinsert)
         logger.debug(f"Writing final video to {output_path}")
-        ffmpeg_logger = MilestoneLogger()
+        ffmpeg_logger: ProgressLogger | str | None = None
+        if video_write_logger == "milestone":
+            ffmpeg_logger = MilestoneLogger()
+        if video_write_logger == "bar":
+            ffmpeg_logger = "bar"
         final_video.write_videofile(
             output_path,
             threads=2,

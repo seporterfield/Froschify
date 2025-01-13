@@ -27,14 +27,13 @@ logger = logging.getLogger("uvicorn.error")
 MAX_VIDEO_LENGTH = int(os.getenv("MAX_VIDEO_LENGTH", "300"))
 
 VIDEO_TOINSERT_PATH = os.getenv("VIDEO_TOINSERT_PATH", "walterfrosch.mp4")
-VIDEO_FOLDER = os.getenv("VIDEO_PATH", "videos")
+VIDEO_FOLDER = os.getenv("VIDEO_FOLDER", "videos")
 Path(VIDEO_FOLDER).mkdir(mode=0o755, exist_ok=True)
 
 BITRATE = os.getenv("BITRATE", "5000k")
 AUDIO_BITRATE = os.getenv("AUDIO_BITRATE", "4098k")
 
-VIDEO_WRITE_LOGGER: str | None = os.getenv("VIDEO_WRITE_LOGGER", "")
-VIDEO_WRITE_LOGGER = "bar" if VIDEO_WRITE_LOGGER == "bar" else None
+VIDEO_WRITE_LOGGER: str | None = os.getenv("VIDEO_WRITE_LOGGER", None)
 
 PROXY_CONNS = os.getenv("PROXY_CONNS", "").split(",")
 PROXY = (
@@ -89,6 +88,7 @@ async def process_video(
         video_folder=VIDEO_FOLDER,
         bitrate=BITRATE,
         audio_bitrate=AUDIO_BITRATE,
+        video_write_logger=VIDEO_WRITE_LOGGER,
     )
 
     if error:
@@ -120,9 +120,3 @@ async def download_video(request: Request, filename: str) -> Response:
         raise HTTPException(status_code=404, detail="Video not found")
     logger.debug(f"File exists, permissions: {oct(os.stat(video_path).st_mode)}")
     return FileResponse(path=video_path, media_type="video/mp4", filename=filename)
-
-
-if __name__ == "__main__":
-    port = int(os.getenv("PORT", "8000"))
-    log_level = os.getenv("LOG_LEVEL", "info")
-    uvicorn.run("main:app", host="127.0.0.1", port=port, log_level=log_level)
