@@ -4,7 +4,6 @@ import os
 from pathlib import Path
 from typing import Annotated
 
-import uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI, Form, HTTPException, Request, Response, status
 from fastapi.responses import FileResponse, HTMLResponse

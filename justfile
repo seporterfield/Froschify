@@ -17,4 +17,4 @@ run:
     uv run uvicorn src.main:app
 
 dev:
-    uv run uvicorn src.main:app --reload --log-level=debug
+    VIDEO_WRITE_LOGGER=bar uv run uvicorn src.main:app --reload --log-level=debug
