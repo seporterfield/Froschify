@@ -14,7 +14,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder /app /app
 WORKDIR /app
 RUN mkdir -p videos && chmod +x monitor.sh
+ENV RUN_MONITOR=false
 ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONUNBUFFERED=1
 EXPOSE 8000
-CMD ["sh", "-c", "./monitor.sh & uvicorn src.main:app --host 0.0.0.0 --port 8000 --workers 2"]
+CMD ["sh", "-c", "if [ \"$RUN_MONITOR\" = \"true\" ]; then ./monitor.sh & fi; uvicorn src.main:app --host 0.0.0.0 --port 8000 --workers 2"]
