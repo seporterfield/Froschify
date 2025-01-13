@@ -1,6 +1,7 @@
 import logging
 import traceback
 import urllib.request
+from urllib.parse import urlparse
 
 import requests
 
@@ -53,6 +54,18 @@ def get_working_proxy(proxy_conns: list[str]) -> dict[str, str] | None:
         except Exception as e:
             logger.debug(f"error during test request: {e}\n{traceback.format_exc()}")
     return None
+
+
+def validate_proxy_url(proxy_url: str) -> bool:
+    """Validate proxy URL format"""
+    try:
+        parsed = urlparse(proxy_url)
+        return all([parsed.scheme, parsed.netloc])
+    except Exception as e:
+        logger.debug(
+            f"Invalid proxy url: {proxy_url}\n{str(e)}\n{traceback.format_exc()}"
+        )
+        return False
 
 
 def get_host_ip() -> str:

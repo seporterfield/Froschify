@@ -6,7 +6,7 @@ from typing import Annotated
 
 import uvicorn
 from dotenv import load_dotenv
-from fastapi import FastAPI, Form, HTTPException, Request, status
+from fastapi import FastAPI, Form, HTTPException, Request, Response, status
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -15,8 +15,9 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from slowapi.util import get_remote_address
 
+from src.edit import insert_video_in_middle
 from src.proxy import get_working_proxy
-from src.youtube import dl_yt_video, insert_video_in_middle
+from src.youtube import dl_yt_video
 
 load_dotenv()
 
@@ -54,18 +55,20 @@ templates = Jinja2Templates(directory="templates")
 
 
 @app.get("/", response_class=HTMLResponse)
-async def home(request: Request):
+async def home(request: Request) -> Response:
     return templates.TemplateResponse("index.html", {"request": request})
 
 
 @app.get("/healthz", status_code=status.HTTP_200_OK)
-async def health(request: Request):
+async def health(request: Request) -> str:
     return "OK"
 
 
 @app.post("/process")
 @limiter.limit("2/minute")
-async def process_video(request: Request, youtube_url: Annotated[str, Form()]):
+async def process_video(
+    request: Request, youtube_url: Annotated[str, Form()]
+) -> dict[str, str]:
     proxies = None
     if PROXY:
         proxies = PROXY
@@ -106,7 +109,7 @@ async def process_video(request: Request, youtube_url: Annotated[str, Form()]):
 
 @app.get("/download/{filename}")
 @limiter.limit("10/minute")
-async def download_video(request: Request, filename: str):
+async def download_video(request: Request, filename: str) -> Response:
     logger.debug("Attempt seeing if video_path exists")
     video_path = os.path.join(os.getcwd(), VIDEO_FOLDER, filename)
     logger.debug(f"{video_path = }")

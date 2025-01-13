@@ -1,16 +1,12 @@
 import logging
-import os
 import traceback
 import uuid
 from enum import Enum
 from typing import Tuple
-from urllib.parse import urlparse
 
-import proglog  # type: ignore
-from moviepy import VideoFileClip  # type: ignore
 from pytubefix import YouTube  # type: ignore
 
-from src.edit import insert_clip_in_middle
+from src.proxy import validate_proxy_url
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -24,74 +20,13 @@ class YouTubeError(Enum):
     RATE_LIMIT = "YouTube rate limit exceeded"
     PROXY_ERROR = "Proxy connection failed"
 
-    # insert_video_in_middle
-    PROCESSING = "Video processing error"
-
-
-def insert_video_in_middle(
-    video_path: str, video_toinsert_path: str, video_folder: str, bitrate, audio_bitrate
-) -> Tuple[str | None, YouTubeError | None]:
-    try:
-        # Load videos
-        logger.debug(f"Loading main video from {video_path}")
-        main_video = VideoFileClip(video_path)
-        logger.debug(f"Loading clip to insert from {video_toinsert_path}")
-        video_toinsert = VideoFileClip(video_toinsert_path)
-
-        # Create output filename
-        output_filename = f"combined_{os.path.basename(video_path)}"
-        output_path = os.path.join(video_folder, output_filename)
-
-        # Combine videos
-        logger.debug("Inserting video")
-        final_video = insert_clip_in_middle(main_video, video_toinsert)
-        logger.debug(f"Writing final video to {output_path}")
-        final_video.write_videofile(
-            output_path,
-            threads=2,
-            bitrate=bitrate,
-            audio_bitrate=audio_bitrate,
-            logger=MilestoneLogger(),
-        )
-
-        # Clean up
-        logger.debug("Cleaning up resources")
-        main_video.close()
-        video_toinsert.close()
-        final_video.close()
-        logger.debug("Finished processing")
-        return output_filename, None
-
-    except OSError as e:
-        logger.error(
-            f"Video processing error (OSError): {str(e)}\n{traceback.format_exc()}"
-        )
-        return None, YouTubeError.PROCESSING
-    except Exception as e:
-        logger.critical(
-            f"Unexpected video processing error: {str(e)}\n{traceback.format_exc()}"
-        )
-        return None, YouTubeError.PROCESSING
-
-
-def validate_proxy_url(proxy_url: str) -> bool:
-    """Validate proxy URL format"""
-    try:
-        parsed = urlparse(proxy_url)
-        return all([parsed.scheme, parsed.netloc])
-    except Exception as e:
-        logger.debug(
-            f"Invalid proxy url: {proxy_url}\n{str(e)}\n{traceback.format_exc()}"
-        )
-        return False
-
 
 def dl_yt_video(
     url: str,
     output_path: str = ".",
     proxies: dict[str, str] | None = None,
     max_video_length: int = -1,
-) -> Tuple[str | None, YouTubeError | None]:
+) -> Tuple[str | None, Enum | None]:
     if proxies:
         logger.debug(f"Using proxies: {proxies}")
         for protocol, proxy_url in proxies.items():
@@ -138,28 +73,3 @@ def dl_yt_video(
                 f"Error connecting to youtube with pytubefixed: {error_msg}\n{traceback.format_exc()}"
             )
             return None, YouTubeError.HTTP_ERROR
-
-
-class MilestoneLogger(proglog.ProgressBarLogger):
-    def __init__(self, milestones=(0, 25, 50, 75, 95)):
-        super().__init__()
-        self.milestones = sorted(milestones)
-        self.next_milestone_index = 0
-
-    def bars_callback(self, bar_name, attr, value, old_value, **kwargs):
-        total = self.bars[bar_name]["total"]
-        if total == 0:
-            return
-        if value == 0:
-            self.next_milestone_index = 0
-
-        current_percentage = (value / total) * 100
-        # Check if we've hit our next milestone
-        if (
-            self.next_milestone_index < len(self.milestones)
-            and current_percentage >= self.milestones[self.next_milestone_index]
-        ):
-            logger.debug(
-                f"Progress: {self.milestones[self.next_milestone_index]}% -- {bar_name}"
-            )
-            self.next_milestone_index += 1
