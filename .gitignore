@@ -1,4 +1,5 @@
 videos/*
+!videos/.gitkeep
 __pycache__/
 .env
 .env.local
