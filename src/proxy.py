@@ -8,6 +8,10 @@ import requests
 logger = logging.getLogger("uvicorn.error")
 
 
+class NoGoodProxyException(Exception):
+    pass
+
+
 def get_working_proxy(proxy_conns: list[str]) -> dict[str, str] | None:
     proxies = []
     for proxy_conn in proxy_conns:
@@ -54,7 +58,7 @@ def get_working_proxy(proxy_conns: list[str]) -> dict[str, str] | None:
                     return proxy
         except Exception as e:
             logger.debug(f"error during test request: {e}\n{traceback.format_exc()}")
-    return None
+    raise NoGoodProxyException
 
 
 def validate_proxy_url(proxy_url: str) -> bool:
