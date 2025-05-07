@@ -1,13 +1,13 @@
 import logging
 import traceback
 import urllib.request
-from urllib.parse import urlparse
 
 import requests
-
-from src.youtube import dl_yt_video
+from pytubefix import YouTube  # type: ignore
 
 logger = logging.getLogger("uvicorn.error")
+
+TEST_YOUTUBE_URL = "https://www.youtube.com/watch?v=tPEE9ZwTmy0"
 
 
 class NoGoodProxyException(Exception):
@@ -31,6 +31,7 @@ def get_working_proxy(proxy_conns: list[str]) -> dict[str, str] | None:
     ip = get_host_ip()
     logger.debug(f"{ip = }")
     logger.debug(f"{proxies =}")
+    candidates_proxies = []
     for proxy in proxies:
         logger.debug(f"Trying proxy: {proxy}")
         proxy_handler = urllib.request.ProxyHandler(proxy)
@@ -57,9 +58,18 @@ def get_working_proxy(proxy_conns: list[str]) -> dict[str, str] | None:
                     )
                 else:
                     logger.info(f"Found good proxy {proxy} @ {new_ip}")
-                    return proxy
+                    candidates_proxies.append(proxy)
         except Exception as e:
             logger.debug(f"error during test request: {e}\n{traceback.format_exc()}")
+    for candidate_proxy in candidates_proxies:
+        try:
+            yt = YouTube(TEST_YOUTUBE_URL, proxies=candidate_proxy)
+            if yt.vid_info.get("videoDetails", {}).get("lengthSeconds") is not None:
+                logger.info(f"Found REALLY good proxy {candidate_proxy}")
+                return candidate_proxy
+        except Exception:
+            logger.warning(f"Candidate proxy {candidate_proxy} failed to get video")
+
     raise NoGoodProxyException
 
 
