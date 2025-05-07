@@ -3,10 +3,11 @@ clean:
     rm -f *.mp3
 
 fmt:
-    ruff check --select I --fix . && ruff format .
+    uv run ruff check --select I --fix . && \
+    uv run ruff format .
 
 chk: fmt
-    mypy --strict .
+    uv run mypy --strict .
 
 setup:
     cp .env.example .env
