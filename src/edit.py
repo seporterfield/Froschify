@@ -56,6 +56,13 @@ def insert_video_in_middle(
             bitrate=bitrate,
             audio_bitrate=audio_bitrate,
             logger=ffmpeg_logger,
+            preset='ultrafast',
+            ffmpeg_params=[
+               '-deadline', 'realtime',
+               '-cpu-used', '8',
+               '-tile-columns', '0',
+               '-frame-parallel', '0'
+            ],
         )
 
         # Clean up
