@@ -43,8 +43,8 @@ def dl_yt_video(
             logger.warning(f"Couldn't get video info for {yt.video_id}")
             raise
 
-        if not yt.length:
-            logger.critical("couldn't get all video info, abortig")
+        if not yt.vid_info.get("videoDetails", {}).get("lengthSeconds"):
+            logger.critical("couldn't get all video info, aborting")
             return None, YouTubeError.UNAVAILABLE
         if yt.length > max_video_length and max_video_length != -1:
             logger.debug("Video too long")
