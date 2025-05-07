@@ -1,6 +1,7 @@
 # main.py
 import logging
 import os
+import traceback
 from pathlib import Path
 from typing import Annotated
 
@@ -40,6 +41,11 @@ PROXY = (
     if not PROXY_CONNS or PROXY_CONNS[0].strip() == ""
     else get_working_proxy(PROXY_CONNS)
 )
+TEST_YOUTUBE_URL = "https://www.youtube.com/watch?v=tPEE9ZwTmy0"
+test_vid_path, error = dl_yt_video(url=TEST_YOUTUBE_URL, proxies=PROXY)
+if error:
+    logger.critical(f"error during test youtube_dl: {error}\n{traceback.format_exc()}")
+    exit(1)
 
 limiter = Limiter(key_func=get_remote_address)
 app = FastAPI()

@@ -3,12 +3,23 @@ import traceback
 import uuid
 from enum import Enum
 from typing import Tuple
+from urllib.parse import urlparse
 
 from pytubefix import YouTube  # type: ignore
 
-from src.proxy import validate_proxy_url
-
 logger = logging.getLogger("uvicorn.error")
+
+
+def validate_proxy_url(proxy_url: str) -> bool:
+    """Validate proxy URL format"""
+    try:
+        parsed = urlparse(proxy_url)
+        return all([parsed.scheme, parsed.netloc])
+    except Exception as e:
+        logger.debug(
+            f"Invalid proxy url: {proxy_url}\n{str(e)}\n{traceback.format_exc()}"
+        )
+        return False
 
 
 class YouTubeError(Enum):
