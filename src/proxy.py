@@ -18,6 +18,7 @@ def get_working_proxy(proxy_conns: list[str]) -> dict[str, str] | None:
             case "https":
                 protocol = "https"
             case _:
+                protocol = "https"
                 proxy_conn = "https://" + proxy_conn
         proxies.append({protocol: proxy_conn})
 
