@@ -36,12 +36,15 @@ def dl_yt_video(
 
     try:
         yt = YouTube(url, proxies=proxies)
-
-        # Check if video is available (pytubefix will handle this internally)
         logger.debug(f"Video ID: {yt.video_id}")
+        try:
+            yt.vid_info
+        except Exception:
+            logger.warning(f"Couldn't get video info for {yt.video_id}")
+            raise
 
         if not yt.length:
-            logger.critical("couldn't get all video info, aborting")
+            logger.critical("couldn't get all video info, abortig")
             return None, YouTubeError.UNAVAILABLE
         if yt.length > max_video_length and max_video_length != -1:
             logger.debug("Video too long")
