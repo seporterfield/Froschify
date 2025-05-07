@@ -32,10 +32,20 @@ def insert_video_in_middle(
 ) -> Tuple[str | None, Enum | None]:
     try:
         # Load videos
+        # Just use ffmpeg! No moviepy
+        # Maybe fully inmem https://github.com/kkroening/ffmpeg-python/issues/500
         logger.debug(f"Loading main video from {video_path}")
         main_video = VideoFileClip(video_path)
         logger.debug(f"Loading clip to insert from {video_toinsert_path}")
         video_toinsert = VideoFileClip(video_toinsert_path)
+
+
+        # Instead, we should split video and audio tracks
+
+        # Then edit video and audio separately (insert clip in middle)
+        # Multithreaded
+
+        # And splice video and audio back together
 
         # Create output filename
         output_filename = f"combined_{os.path.basename(video_path)}"
