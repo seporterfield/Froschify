@@ -15,7 +15,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from slowapi.util import get_remote_address
 
-from src.edit import insert_video_in_middle
+from src.edit import append_video
 from src.proxy import get_working_proxy
 from src.youtube import dl_yt_video
 
@@ -87,7 +87,7 @@ async def process_video(
     if not downloaded_path:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    output_filename, error = insert_video_in_middle(
+    output_filename, error = append_video(
         video_path=downloaded_path,
         video_toinsert_path=VIDEO_TOINSERT_PATH,
         video_folder=VIDEO_FOLDER,

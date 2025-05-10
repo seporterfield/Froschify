@@ -15,14 +15,14 @@ class EditError(Enum):
     PROCESSING = "Video processing error"
 
 
-def insert_clip_in_middle(video: VideoFileClip, clip: VideoFileClip) -> VideoFileClip:
-    first_half = video.subclipped(0, video.duration / 2)
-    second_half = video.subclipped(video.duration / 2)
+def append_clip(video: VideoFileClip, clip: VideoFileClip) -> VideoFileClip:
+    duration = max(video.duration / 10, 1)
+    first_half = video.subclipped(0, duration)
 
-    return concatenate_videoclips([first_half, clip, second_half], method="compose")
+    return concatenate_videoclips([first_half, clip], method="compose")
 
 
-def insert_video_in_middle(
+def append_video(
     video_path: str,
     video_toinsert_path: str,
     video_folder: str,
@@ -39,7 +39,6 @@ def insert_video_in_middle(
         logger.debug(f"Loading clip to insert from {video_toinsert_path}")
         video_toinsert = VideoFileClip(video_toinsert_path)
 
-
         # Instead, we should split video and audio tracks
 
         # Then edit video and audio separately (insert clip in middle)
@@ -53,7 +52,7 @@ def insert_video_in_middle(
 
         # Combine videos
         logger.debug("Inserting video")
-        final_video = insert_clip_in_middle(main_video, video_toinsert)
+        final_video = append_clip(main_video, video_toinsert)
         logger.debug(f"Writing final video to {output_path}")
         ffmpeg_logger: ProgressLogger | str | None = None
         if video_write_logger == "milestone":
