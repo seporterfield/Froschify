@@ -17,7 +17,10 @@ class EditError(Enum):
 
 def append_clip(video: VideoFileClip, clip: VideoFileClip) -> VideoFileClip:
     duration = max(video.duration / 10, 1)
-    first_half = video.subclipped(0, duration)
+    if video.duration >= 1:
+        first_half = video.subclipped(0, duration)
+    else:
+        first_half = video
 
     return concatenate_videoclips([first_half, clip], method="compose")
 
