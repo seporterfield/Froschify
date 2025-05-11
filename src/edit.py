@@ -134,20 +134,35 @@ def append_video_ffmpeg(
     output_filename = f"combined_{basename}"
     output_path = os.path.abspath(os.path.join(video_folder, output_filename))
 
-    intermediate1 = os.path.join(video_folder, f"transcoded_{uuid.uuid4()}.mp4")
-    intermediate2 = os.path.join(video_folder, f"transcoded_{uuid.uuid4()}.mp4")
+    # Temp files
+    trimmed_main = os.path.join(video_folder, f"trimmed_{uuid.uuid4()}.mp4")
+    transcoded_main = os.path.join(video_folder, f"transcoded_{uuid.uuid4()}.mp4")
+    transcoded_insert = os.path.join(video_folder, f"transcoded_{uuid.uuid4()}.mp4")
     concat_list_path = os.path.join(video_folder, "concat_list.txt")
 
-    # Transcode both videos for format compatibility
-    transcode_to_compatible(video_path, intermediate1)
-    transcode_to_compatible(video_toinsert_path, intermediate2)
+    # Get main video duration
+    duration = get_video_duration(video_path)
 
-    # Create concat list file
+    if duration > 3.0:
+        # Trim to 3 seconds
+        subprocess.run(
+            ["ffmpeg", "-y", "-i", video_path, "-t", "3", "-c", "copy", trimmed_main],
+            check=True,
+        )
+        main_input = trimmed_main
+    else:
+        main_input = video_path
+
+    # Transcode both to ensure compatibility
+    transcode_to_compatible(main_input, transcoded_main)
+    transcode_to_compatible(video_toinsert_path, transcoded_insert)
+
+    # Create concat list
     with open(concat_list_path, "w") as f:
-        f.write(f"file '{os.path.abspath(intermediate1)}'\n")
-        f.write(f"file '{os.path.abspath(intermediate2)}'\n")
+        f.write(f"file '{os.path.abspath(transcoded_main)}'\n")
+        f.write(f"file '{os.path.abspath(transcoded_insert)}'\n")
 
-    # Concatenate videos
+    # Concatenate
     subprocess.run(
         [
             "ffmpeg",
