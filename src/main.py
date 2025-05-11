@@ -61,7 +61,7 @@ def create_app() -> FastAPI:
 
     @app.get("/", response_class=HTMLResponse)
     async def home(request: Request) -> Response:
-        return templates.TemplateResponse("index.html", {"request": request})
+        return templates.TemplateResponse(request, "index.html")
 
     @app.get("/healthz", status_code=status.HTTP_200_OK)
     async def health(request: Request) -> PlainTextResponse:
