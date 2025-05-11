@@ -15,3 +15,4 @@ Dockerfile
 docker-compose.yml
 README.md
 experiments/
+tests/
