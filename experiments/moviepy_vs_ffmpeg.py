@@ -2,6 +2,7 @@ import os
 
 # Figure out whether the edit script is faster than
 # doing the same thing with ffmpeg
+# uv run python ./experiments/moviepy_vs_ffmpeg.py | grep "took time ="
 import sys
 from time import perf_counter
 from typing import Callable
@@ -69,7 +70,8 @@ def use_ffmpeg() -> None:
         [1:v]setpts=PTS-STARTPTS[v1]; \
         [1:a]asetpts=PTS-STARTPTS[a1]; \
         [v0][a0][v1][a1]concat=n=2:v=1:a=1[outv][outa]" \
-        -map "[outv]" -map "[outa]" -b:v {bitrate} -b:a {audio_bitrate} "{output_path}"
+        -map "[outv]" -map "[outa]" -c:v libx264 -preset ultrafast -crf 23 \
+        -c:a aac -b:a {audio_bitrate} "{output_path}"
         """
 
         subprocess.run(ffmpeg_cmd, shell=True, check=True)
