@@ -7,3 +7,5 @@ __pycache__/
 .env.keys
 *.mp3
 *.mp4
+!walterfrosch.mp4
+!shortest.mp4
