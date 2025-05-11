@@ -1,4 +1,5 @@
 from enum import Enum
+from functools import partial
 from typing import Callable, Tuple
 
 import pytest
@@ -30,6 +31,7 @@ def test_landing_page(client: TestClient) -> None:
 
 
 def get_local_video(
+    source_file: str,
     url: str,
     output_path: str = ".",
     proxies: dict[str, str] | None = None,
@@ -38,7 +40,6 @@ def get_local_video(
     import os
     from shutil import copyfile
 
-    source_file = "shortest.mp4"
     dest_path = os.path.join(output_path, "test_video.mp4")
     copyfile(source_file, dest_path)
     return dest_path, None
@@ -48,10 +49,23 @@ def test_process_short_video(app: FastAPI, client: TestClient) -> None:
     def get_yt_handler_test() -> Callable[
         [str, str, dict[str, str] | None, int], Tuple[str | None, Enum | None]
     ]:
-        return get_local_video
+        return partial(get_local_video, "shortest.mp4")
 
     app.dependency_overrides[get_yt_handler] = get_yt_handler_test
     resp = client.post(
         "/process", json={"youtube_url": "https://youtube.com/watch?v=short123"}
+    )
+    assert resp.status_code == 200
+
+
+def test_process_long_video(app: FastAPI, client: TestClient) -> None:
+    def get_yt_handler_test() -> Callable[
+        [str, str, dict[str, str] | None, int], Tuple[str | None, Enum | None]
+    ]:
+        return partial(get_local_video, "walterfrosch.mp4")
+
+    app.dependency_overrides[get_yt_handler] = get_yt_handler_test
+    resp = client.post(
+        "/process", json={"youtube_url": "https://youtube.com/watch?v=long123"}
     )
     assert resp.status_code == 200

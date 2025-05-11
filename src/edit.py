@@ -95,7 +95,7 @@ def append_video_ffmpeg(
     trimmed_main = os.path.join(video_folder, f"trimmed_{uuid.uuid4()}.mp4")
     transcoded_main = os.path.join(video_folder, f"transcoded_{uuid.uuid4()}.mp4")
     transcoded_insert = os.path.join(video_folder, f"transcoded_{uuid.uuid4()}.mp4")
-    concat_list_path = os.path.join(video_folder, "concat_list.txt")
+    concat_list_path = os.path.join(video_folder, f"concat_list_{uuid.uuid4()}.txt")
 
     # Get main video duration
     duration = get_video_duration(video_path)
