@@ -165,4 +165,4 @@ def append_video_ffmpeg(
         check=True,
     )
 
-    return output_path
+    return output_filename
