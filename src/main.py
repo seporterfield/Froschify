@@ -1,6 +1,7 @@
 # main.py
 import logging
 import os
+import time
 import traceback
 from pathlib import Path
 from typing import Annotated
@@ -15,7 +16,7 @@ from slowapi.middleware import SlowAPIMiddleware
 from slowapi.util import get_remote_address
 
 from src.config import settings
-from src.edit import append_video_ffmpeg
+from src.edit import append_video, append_video_ffmpeg
 from src.proxy import get_working_proxy
 from src.youtube import dl_yt_video
 
@@ -85,11 +86,14 @@ def create_app() -> FastAPI:
         if not downloaded_path:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+        start = time.perf_counter()
         output_filename = append_video_ffmpeg(
             video_path=downloaded_path,
             video_toinsert_path=settings.VIDEO_TOINSERT_PATH,
             video_folder=settings.VIDEO_FOLDER,
         )
+        end = time.perf_counter()
+        logger.info(f"processing took {end - start}")
 
         if error:
             raise HTTPException(

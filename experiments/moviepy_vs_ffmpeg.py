@@ -1,4 +1,5 @@
 import os
+import subprocess
 
 # Figure out whether the edit script is faster than
 # doing the same thing with ffmpeg
@@ -6,7 +7,6 @@ import os
 import sys
 from time import perf_counter
 from typing import Callable
-import subprocess
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from src.edit import append_video
@@ -15,14 +15,11 @@ VIDEO = "./shortest.mp4"
 
 
 def use_moviepy() -> None:
-    _, error = append_video(
+    append_video(
         video_path=VIDEO,
         video_toinsert_path=VIDEO,
         video_folder="./videos",
-        bitrate="5000k",
-        audio_bitrate="128k",
     )
-    assert error is None
 
 
 def get_video_duration(video_path: str) -> float:
@@ -83,9 +80,9 @@ def append_video_ffmpeg(
 
     ffmpeg_cmd = f"""
     ffmpeg -y -i "{video_path}" -i "{video_toinsert_path}" -filter_complex \\
-    "[0:v]{trim}{scale_filter},setpts=PTS-STARTPTS[v0]; \\
+    "[0:v]{trim}{scale_filter},setsar=1,setpts=PTS-STARTPTS[v0]; \\
      [0:a]{atrim}asetpts=PTS-STARTPTS[a0]; \\
-     [1:v]{scale_filter},setpts=PTS-STARTPTS[v1]; \\
+     [1:v]{scale_filter},setsar=1,setpts=PTS-STARTPTS[v1]; \\
      [1:a]asetpts=PTS-STARTPTS[a1]; \\
      [v0][a0][v1][a1]concat=n=2:v=1:a=1[outv][outa]" \\
     -map "[outv]" -map "[outa]" -c:v libx264 -preset ultrafast -crf 23 \\
