@@ -1,7 +1,7 @@
 import logging
 import os
 import subprocess
-from enum import Enum
+import uuid
 
 from moviepy import (  # type: ignore[import-untyped]
     VideoFileClip,
@@ -50,7 +50,6 @@ def append_video(
 
 
 def get_video_duration(video_path: str) -> float:
-    """Get the duration of a video file using ffprobe."""
     result = subprocess.run(
         [
             "ffprobe",
@@ -91,30 +90,79 @@ def get_video_resolution(video_path: str) -> tuple[int, int]:
     return int(width), int(height)
 
 
+def transcode_to_compatible(input_path: str, output_path: str) -> None:
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-y",
+            "-fflags",
+            "+genpts",  # Generate consistent timestamps
+            "-i",
+            input_path,
+            "-vf",
+            "fps=30",  # Force constant frame rate (CFR)
+            "-vsync",
+            "cfr",  # CFR mode
+            "-c:v",
+            "libx264",
+            "-preset",
+            "ultrafast",
+            "-crf",
+            "23",
+            "-g",
+            "60",  # Force keyframe interval (2 sec at 30fps)
+            "-keyint_min",
+            "60",
+            "-c:a",
+            "aac",
+            "-b:a",
+            "128k",
+            "-movflags",
+            "+faststart",
+            output_path,
+        ],
+        check=True,
+    )
+
+
 def append_video_ffmpeg(
     video_path: str, video_toinsert_path: str, video_folder: str
 ) -> str:
-    width, height = get_video_resolution(video_path)
+    os.makedirs(video_folder, exist_ok=True)
 
-    output_filename = f"combined_{os.path.basename(video_path)}"
+    basename = os.path.basename(video_path)
+    output_filename = f"combined_{basename}"
     output_path = os.path.abspath(os.path.join(video_folder, output_filename))
-    duration = get_video_duration(video_path)
 
-    trim = "trim=0:3," if duration >= 3 else ""
-    atrim = "atrim=0:3," if duration >= 3 else ""
+    intermediate1 = os.path.join(video_folder, f"transcoded_{uuid.uuid4()}.mp4")
+    intermediate2 = os.path.join(video_folder, f"transcoded_{uuid.uuid4()}.mp4")
+    concat_list_path = os.path.join(video_folder, "concat_list.txt")
 
-    scale_filter = f"scale={width}:{height}"
+    # Transcode both videos for format compatibility
+    transcode_to_compatible(video_path, intermediate1)
+    transcode_to_compatible(video_toinsert_path, intermediate2)
 
-    ffmpeg_cmd = f"""
-    ffmpeg -y -i "{video_path}" -i "{video_toinsert_path}" -filter_complex \\
-    "[0:v]{trim}{scale_filter},setsar=1,setpts=PTS-STARTPTS[v0]; \\
-     [0:a]{atrim}asetpts=PTS-STARTPTS[a0]; \\
-     [1:v]{scale_filter},setsar=1,setpts=PTS-STARTPTS[v1]; \\
-     [1:a]asetpts=PTS-STARTPTS[a1]; \\
-     [v0][a0][v1][a1]concat=n=2:v=1:a=1[outv][outa]" \\
-    -map "[outv]" -map "[outa]" -c:v libx264 -preset ultrafast -crf 23 \\
-    -c:a aac -b:a 128k "{output_path}"
-    """
+    # Create concat list file
+    with open(concat_list_path, "w") as f:
+        f.write(f"file '{os.path.abspath(intermediate1)}'\n")
+        f.write(f"file '{os.path.abspath(intermediate2)}'\n")
 
-    subprocess.run(ffmpeg_cmd, shell=True, check=True)
+    # Concatenate videos
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-y",
+            "-f",
+            "concat",
+            "-safe",
+            "0",
+            "-i",
+            concat_list_path,
+            "-c",
+            "copy",
+            output_path,
+        ],
+        check=True,
+    )
+
     return output_path

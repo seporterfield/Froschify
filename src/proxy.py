@@ -1,8 +1,9 @@
 import logging
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 import requests
 from pytubefix import YouTube  # type: ignore
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from src.config import settings
 
