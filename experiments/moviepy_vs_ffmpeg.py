@@ -51,8 +51,6 @@ def use_ffmpeg() -> None:
         video_path: str,
         video_toinsert_path: str,
         video_folder: str,
-        bitrate: str,
-        audio_bitrate: str,
     ) -> str:
         # Paths to your video files
         output_filename = f"combined_ffmpeg_{os.path.basename(video_path)}"
@@ -71,7 +69,7 @@ def use_ffmpeg() -> None:
         [1:a]asetpts=PTS-STARTPTS[a1]; \
         [v0][a0][v1][a1]concat=n=2:v=1:a=1[outv][outa]" \
         -map "[outv]" -map "[outa]" -c:v libx264 -preset ultrafast -crf 23 \
-        -c:a aac -b:a {audio_bitrate} "{output_path}"
+        -c:a aac -b:a 128k "{output_path}"
         """
 
         subprocess.run(ffmpeg_cmd, shell=True, check=True)
@@ -81,8 +79,6 @@ def use_ffmpeg() -> None:
         video_path="./walterfrosch.mp4",
         video_toinsert_path="./walterfrosch.mp4",
         video_folder="./videos",
-        bitrate="5000k",
-        audio_bitrate="4098k",
     )
 
 
