@@ -10,6 +10,7 @@ from fastapi import FastAPI, Form, HTTPException, Request, Response, status
 from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
@@ -70,11 +71,13 @@ def create_app() -> FastAPI:
     async def health(request: Request) -> PlainTextResponse:
         return PlainTextResponse("OK")
 
+    class VideoRequest(BaseModel):
+        youtube_url: str
+
     @app.post("/process")
     @limiter.limit("2/minute")
-    async def process_video(
-        request: Request, youtube_url: Annotated[str, Form()]
-    ) -> dict[str, str]:
+    async def process_video(request: Request, payload: VideoRequest) -> dict[str, str]:
+        youtube_url = payload.youtube_url
         downloaded_path, error = dl_yt_video(
             url=youtube_url,
             output_path=settings.VIDEO_FOLDER,

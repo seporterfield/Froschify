@@ -224,10 +224,14 @@
 
             async function attemptRequest() {
                 try {
-                    const formData = new FormData(form);
                     const response = await fetch('/process', {
                         method: 'POST',
-                        body: formData
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            youtube_url: form.youtube_url.value
+                        })
                     });
 
                     if (response.status === 502) {
