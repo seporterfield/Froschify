@@ -1,9 +1,8 @@
 import logging
-import traceback
 import urllib.request
-
 import requests
 from pytubefix import YouTube  # type: ignore
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from src.config import settings
 
@@ -31,36 +30,40 @@ def get_working_proxy(proxy_conns: list[str]) -> dict[str, str] | None:
     ip = get_host_ip()
     logger.debug(f"{ip = }")
     logger.debug(f"{proxies =}")
-    candidates_proxies = []
-    for proxy in proxies:
+
+    def test_proxy(proxy: dict[str, str]) -> dict[str, str] | None:
         logger.debug(f"Trying proxy: {proxy}")
         proxy_handler = urllib.request.ProxyHandler(proxy)
         opener = urllib.request.build_opener(proxy_handler)
         opener.addheaders = [
-            (
-                "User-Agent",
-                "curl/7.72.0",
-                # "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-            )
+            ("User-Agent", "curl/7.72.0"),
         ]
-        logger.debug("Installing as global opener")
         urllib.request.install_opener(opener)
         try:
-            # Make the request
-            with urllib.request.urlopen("https://ipconfig.io") as response:
-                # Read and decode the response
+            with urllib.request.urlopen("https://ipconfig.io", timeout=10) as response:
                 content: bytes = response.read()
                 new_ip = content.decode("utf-8").strip()
                 logger.debug(f"Response from ipconfig.io: {new_ip}")
-                if new_ip == ip:
+                if new_ip != ip:
+                    logger.info(f"Found good proxy {proxy} @ {new_ip}")
+                    return proxy
+                else:
                     logger.warning(
                         f"proxy address is same as host address: {new_ip} == {ip}"
                     )
-                else:
-                    logger.info(f"Found good proxy {proxy} @ {new_ip}")
-                    candidates_proxies.append(proxy)
         except Exception as e:
-            logger.debug(f"error during test request: {e}\n{traceback.format_exc()}")
+            logger.debug(f"Error during test request: {e}")
+        return None
+
+    candidates_proxies = []
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        future_to_proxy = {
+            executor.submit(test_proxy, proxy): proxy for proxy in proxies
+        }
+        for future in as_completed(future_to_proxy):
+            result = future.result()
+            if result:
+                candidates_proxies.append(result)
     for candidate_proxy in candidates_proxies:
         try:
             yt = YouTube(settings.TEST_YOUTUBE_URL, proxies=candidate_proxy)
@@ -80,5 +83,5 @@ def get_host_ip() -> str:
         )
         return response.text.strip()
     except Exception as e:
-        logger.debug(f"error getting host ip: {e}\n{traceback.format_exc()}")
+        logger.debug(f"error getting host ip: {e}")
         raise e
