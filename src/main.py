@@ -87,7 +87,7 @@ def create_app() -> FastAPI:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         start = time.perf_counter()
-        output_filename = append_video_ffmpeg(
+        output_filename = append_video(
             video_path=downloaded_path,
             video_toinsert_path=settings.VIDEO_TOINSERT_PATH,
             video_folder=settings.VIDEO_FOLDER,
