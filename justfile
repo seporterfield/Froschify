@@ -2,6 +2,7 @@ clean:
     rm -f videos/*
     rm -f *.mp3
     rm -rf **/__pycache__
+    rm -rf __pycache__
     rm -rf .venv
 
 install:
