@@ -1,5 +1,6 @@
 import logging
 import os
+import subprocess
 import traceback
 from enum import Enum
 from typing import Any, Tuple
@@ -120,3 +121,74 @@ class MilestoneLogger(proglog.ProgressBarLogger):  # type: ignore
                 f"Progress: {self.milestones[self.next_milestone_index]}% -- {bar_name}"
             )
             self.next_milestone_index += 1
+
+
+def get_video_duration(video_path: str) -> float:
+    """Get the duration of a video file using ffprobe."""
+    result = subprocess.run(
+        [
+            "ffprobe",
+            "-v",
+            "error",
+            "-show_entries",
+            "format=duration",
+            "-of",
+            "csv=p=0",
+            video_path,
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    return float(result.stdout.strip())
+
+
+def get_video_resolution(video_path: str) -> tuple[int, int]:
+    result = subprocess.run(
+        [
+            "ffprobe",
+            "-v",
+            "error",
+            "-select_streams",
+            "v:0",
+            "-show_entries",
+            "stream=width,height",
+            "-of",
+            "csv=s=x:p=0",
+            video_path,
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    width, height = result.stdout.strip().split("x")
+    return int(width), int(height)
+
+
+def append_video_ffmpeg(
+    video_path: str, video_toinsert_path: str, video_folder: str
+) -> str:
+    width, height = get_video_resolution(video_path)
+
+    output_filename = f"combined_{os.path.basename(video_path)}"
+    output_path = os.path.abspath(os.path.join(video_folder, output_filename))
+    duration = get_video_duration(video_path)
+
+    trim = "trim=0:3," if duration >= 3 else ""
+    atrim = "atrim=0:3," if duration >= 3 else ""
+
+    scale_filter = f"scale={width}:{height}"
+
+    ffmpeg_cmd = f"""
+    ffmpeg -y -i "{video_path}" -i "{video_toinsert_path}" -filter_complex \\
+    "[0:v]{trim}{scale_filter},setpts=PTS-STARTPTS[v0]; \\
+     [0:a]{atrim}asetpts=PTS-STARTPTS[a0]; \\
+     [1:v]{scale_filter},setpts=PTS-STARTPTS[v1]; \\
+     [1:a]asetpts=PTS-STARTPTS[a1]; \\
+     [v0][a0][v1][a1]concat=n=2:v=1:a=1[outv][outa]" \\
+    -map "[outv]" -map "[outa]" -c:v libx264 -preset ultrafast -crf 23 \\
+    -c:a aac -b:a 128k "{output_path}"
+    """
+
+    subprocess.run(ffmpeg_cmd, shell=True, check=True)
+    return output_path

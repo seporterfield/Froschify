@@ -15,7 +15,7 @@ from slowapi.middleware import SlowAPIMiddleware
 from slowapi.util import get_remote_address
 
 from src.config import settings
-from src.edit import append_video
+from src.edit import append_video_ffmpeg
 from src.proxy import get_working_proxy
 from src.youtube import dl_yt_video
 
@@ -85,13 +85,10 @@ def create_app() -> FastAPI:
         if not downloaded_path:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        output_filename, error = append_video(
+        output_filename = append_video_ffmpeg(
             video_path=downloaded_path,
             video_toinsert_path=settings.VIDEO_TOINSERT_PATH,
             video_folder=settings.VIDEO_FOLDER,
-            bitrate=settings.BITRATE,
-            audio_bitrate=settings.AUDIO_BITRATE,
-            video_write_logger=settings.VIDEO_WRITE_LOGGER,
         )
 
         if error:
