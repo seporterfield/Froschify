@@ -19,24 +19,31 @@ from src.edit import append_video
 from src.proxy import get_working_proxy
 from src.youtube import dl_yt_video
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("uvicorn.error")
 
-def create_app() -> FastAPI:
-    logging.basicConfig(level=logging.INFO)
-    logger = logging.getLogger("uvicorn.error")
 
-    Path(settings.VIDEO_FOLDER).mkdir(mode=0o755, exist_ok=True)
-
-    PROXY = (
+def make_proxy() -> dict[str, str] | None:
+    proxy = (
         None
         if not settings.PROXY_CONNS or settings.PROXY_CONNS[0].strip() == ""
         else get_working_proxy(settings.PROXY_CONNS)
     )
-    test_vid_path, error = dl_yt_video(url=settings.TEST_YOUTUBE_URL, proxies=PROXY)
+    if proxy is None:
+        return None
+    _, error = dl_yt_video(url=settings.TEST_YOUTUBE_URL, proxies=proxy)
     if error:
         logger.critical(
             f"error during test youtube_dl: {error}\n{traceback.format_exc()}"
         )
         exit(1)
+    return proxy
+
+
+def create_app() -> FastAPI:
+    Path(settings.VIDEO_FOLDER).mkdir(mode=0o755, exist_ok=True)
+
+    proxy = make_proxy()
 
     limiter = Limiter(key_func=get_remote_address)
     app = FastAPI()
@@ -57,7 +64,7 @@ def create_app() -> FastAPI:
         return templates.TemplateResponse("index.html", {"request": request})
 
     @app.get("/healthz", status_code=status.HTTP_200_OK)
-    async def health(request: Request) -> str:
+    async def health(request: Request) -> PlainTextResponse:
         return PlainTextResponse("OK")
 
     @app.post("/process")
@@ -65,11 +72,10 @@ def create_app() -> FastAPI:
     async def process_video(
         request: Request, youtube_url: Annotated[str, Form()]
     ) -> dict[str, str]:
-        proxies = PROXY
         downloaded_path, error = dl_yt_video(
             url=youtube_url,
             output_path=settings.VIDEO_FOLDER,
-            proxies=proxies,
+            proxies=proxy,
             max_video_length=settings.MAX_VIDEO_LENGTH,
         )
         if error:

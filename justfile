@@ -1,6 +1,11 @@
 clean:
     rm -f videos/*
     rm -f *.mp3
+    rm -rf **/__pycache__
+    rm -rf .venv
+
+install:
+    uv sync
 
 fmt:
     uv run ruff check --select I --fix . && \
@@ -9,13 +14,8 @@ fmt:
 chk: fmt
     uv run mypy --strict .
 
-setup:
-    cp .env.example .env
-    uv sync
-    mkdir -p videos
+test:
+    uv run pytest tests
 
 run:
-    uv run uvicorn src.main:app
-
-dev:
-    VIDEO_WRITE_LOGGER=bar uv run uvicorn src.main:app --reload --log-level=debug
+    uv run uvicorn src.main:app --reload
