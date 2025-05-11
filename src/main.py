@@ -1,12 +1,12 @@
-# main.py
 import logging
 import os
 import time
 import traceback
+from enum import Enum
 from pathlib import Path
-from typing import Annotated
+from typing import Callable, Tuple
 
-from fastapi import FastAPI, Form, HTTPException, Request, Response, status
+from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
 from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -25,6 +25,10 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("uvicorn.error")
 
 
+class VideoRequest(BaseModel):
+    youtube_url: str
+
+
 def make_proxy() -> dict[str, str] | None:
     proxy = (
         None
@@ -40,6 +44,12 @@ def make_proxy() -> dict[str, str] | None:
         )
         exit(1)
     return proxy
+
+
+def get_yt_handler() -> Callable[
+    [str, str, dict[str, str] | None, int], Tuple[str | None, Enum | None]
+]:
+    return dl_yt_video
 
 
 def create_app() -> FastAPI:
@@ -71,18 +81,21 @@ def create_app() -> FastAPI:
     async def health(request: Request) -> PlainTextResponse:
         return PlainTextResponse("OK")
 
-    class VideoRequest(BaseModel):
-        youtube_url: str
-
     @app.post("/process")
     @limiter.limit("2/minute")
-    async def process_video(request: Request, payload: VideoRequest) -> dict[str, str]:
+    async def process_video(
+        request: Request,
+        payload: VideoRequest,
+        yt_handler: Callable[
+            [str, str, dict[str, str] | None, int], Tuple[str | None, Enum | None]
+        ] = Depends(get_yt_handler),
+    ) -> dict[str, str]:
         youtube_url = payload.youtube_url
-        downloaded_path, error = dl_yt_video(
-            url=youtube_url,
-            output_path=settings.VIDEO_FOLDER,
-            proxies=proxy,
-            max_video_length=settings.MAX_VIDEO_LENGTH,
+        downloaded_path, error = yt_handler(
+            youtube_url,
+            settings.VIDEO_FOLDER,
+            proxy,
+            settings.MAX_VIDEO_LENGTH,
         )
         if error:
             raise HTTPException(
