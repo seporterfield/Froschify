@@ -5,9 +5,9 @@ import urllib.request
 import requests
 from pytubefix import YouTube  # type: ignore
 
-logger = logging.getLogger("uvicorn.error")
+from src.config import settings
 
-TEST_YOUTUBE_URL = "https://www.youtube.com/watch?v=tPEE9ZwTmy0"
+logger = logging.getLogger("uvicorn.error")
 
 
 class NoGoodProxyException(Exception):
@@ -63,7 +63,7 @@ def get_working_proxy(proxy_conns: list[str]) -> dict[str, str] | None:
             logger.debug(f"error during test request: {e}\n{traceback.format_exc()}")
     for candidate_proxy in candidates_proxies:
         try:
-            yt = YouTube(TEST_YOUTUBE_URL, proxies=candidate_proxy)
+            yt = YouTube(settings.TEST_YOUTUBE_URL, proxies=candidate_proxy)
             if yt.vid_info.get("videoDetails", {}).get("lengthSeconds") is not None:
                 logger.info(f"Found REALLY good proxy {candidate_proxy}")
                 return candidate_proxy
