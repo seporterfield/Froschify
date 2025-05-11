@@ -17,7 +17,7 @@ from slowapi.middleware import SlowAPIMiddleware
 from slowapi.util import get_remote_address
 
 from src.config import settings
-from src.edit import append_video, append_video_ffmpeg
+from src.edit import append_video_ffmpeg
 from src.proxy import get_working_proxy
 from src.youtube import dl_yt_video
 

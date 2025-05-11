@@ -3,50 +3,7 @@ import os
 import subprocess
 import uuid
 
-from moviepy import (  # type: ignore[import-untyped]
-    VideoFileClip,
-    concatenate_videoclips,
-)
-
 logger = logging.getLogger("uvicorn.error")
-
-
-def append_clip(video: VideoFileClip, clip: VideoFileClip) -> VideoFileClip:
-    duration = max(video.duration / 10, 1)
-    if video.duration >= 1:
-        first_half = video.subclipped(0, duration)
-    else:
-        first_half = video
-
-    return concatenate_videoclips([first_half, clip], method="compose")
-
-
-def append_video(
-    video_path: str,
-    video_toinsert_path: str,
-    video_folder: str,
-) -> str:
-    logger.debug(f"Loading main video from {video_path}")
-    main_video = VideoFileClip(video_path)
-    logger.debug(f"Loading clip to insert from {video_toinsert_path}")
-    video_toinsert = VideoFileClip(video_toinsert_path)
-
-    output_filename = f"combined_{os.path.basename(video_path)}"
-    output_path = os.path.join(video_folder, output_filename)
-
-    logger.debug("Inserting video")
-    final_video = append_clip(main_video, video_toinsert)
-    logger.debug(f"Writing final video to {output_path}")
-    final_video.write_videofile(
-        output_path, threads=2, bitrate="5000k", audio_bitrate="128k", logger=None
-    )
-
-    logger.debug("Cleaning up resources")
-    main_video.close()
-    video_toinsert.close()
-    final_video.close()
-    logger.debug("Finished processing")
-    return output_filename
 
 
 def get_video_duration(video_path: str) -> float:
