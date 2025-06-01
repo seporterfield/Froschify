@@ -70,8 +70,8 @@ def test_process_long_video(app: FastAPI, client: TestClient) -> None:
     )
     assert resp.status_code == 200
 
+
 # Feedback
-# - needs progress bar, painful right just sitting waiting
 # - it didnt work after opening in the player
 # - would be hard to share to someone on phone since it saves to files. it should save the file to "videos" on an iPhone
 # also the name is combined-blahblahblah, I can't find the video

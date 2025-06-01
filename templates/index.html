@@ -162,6 +162,10 @@
         <div id="loading" class="loading">
             Processing video... This may take a few minutes.
         </div>
+        <div id="progress-bar-container" style="display: none;">
+            <progress id="progress-bar" value="0" max="100" style="width: 100%; height: 10px;"></progress>
+            <span id="progress-text">0%</span>
+        </div>
 
         <div id="error"></div>
         <div id="rateLimit">
@@ -222,8 +226,27 @@
             const maxRetries = 3;
             let retryCount = 0;
 
+            const progressBarContainer = document.getElementById('progress-bar-container');
+            const progressBar = document.getElementById('progress-bar');
+            const progressText = document.getElementById('progress-text');
+
+
             async function attemptRequest() {
                 try {
+
+                    progressBarContainer.style.display = 'block';
+                    let timeSpent = 0;
+                    let intervalId = setInterval(() => {
+                        timeSpent++;
+                        progressBar.value = Math.min((timeSpent/30) * 100, 100);
+                        progressText.textContent = `${timeSpent}%`;
+                        if (timeSpent >= 29) {
+                            clearInterval(intervalId);
+                            progressBar.value = 99;
+                            progressText.textContent = `99%`;
+                        }
+                    }, 1000);
+
                     const response = await fetch('/process', {
                         method: 'POST',
                         headers: {
@@ -269,6 +292,10 @@
 
                     loading.style.display = 'none';
                     download.style.display = 'block';
+
+                    progressBar.value = 100;
+                    progressText.textContent = `100%`;
+                    clearInterval(intervalId);
 
                 } catch (err) {
                     if (err.message === 'RATE_LIMIT_EXCEEDED') {
@@ -348,7 +375,7 @@
         });
     </script>
 
-    <div class="footer">
+    <div class="footer" style="display: none;">
         <p>Version: {{ git_sha }}</p>
     </div>
 </body>
