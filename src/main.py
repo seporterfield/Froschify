@@ -119,15 +119,7 @@ def create_app() -> FastAPI:
             )
         if not output_filename:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        os.remove(downloaded_path)  # Remove original downloaded video
-        if os.path.exists(os.path.join(settings.VIDEO_FOLDER, output_filename)):
-            logger.debug(f"File {output_filename} successfully created")
-        else:
-            logger.error(
-                f"File {output_filename} was not created. Check for errors in the pipeline."
-            )
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
+        os.remove(downloaded_path)
         return {"filename": output_filename}
 
     @app.get("/download/{filename}")
@@ -135,13 +127,8 @@ def create_app() -> FastAPI:
     async def download_video(request: Request, filename: str) -> Response:
         logger.debug("Attempt seeing if video_path exists")
         video_path = os.path.join(os.getcwd(), settings.VIDEO_FOLDER, filename)
-        logger.debug(f"{video_path = }")
         if not os.path.exists(video_path):
-            logger.debug(
-                f"File does not exist. Directory contents: {os.listdir(settings.VIDEO_FOLDER)}"
-            )
             raise HTTPException(status_code=404, detail="Video not found")
-        logger.debug(f"File exists, permissions: {oct(os.stat(video_path).st_mode)}")
         return FileResponse(path=video_path, media_type="video/mp4", filename=filename)
 
     return app
