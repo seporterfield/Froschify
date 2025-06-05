@@ -1,6 +1,4 @@
 import logging
-import urllib.request
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import requests
 from pytubefix import YouTube  # type: ignore
@@ -31,17 +29,15 @@ def get_working_proxy(proxy_conns: list[str]) -> dict[str, str] | None:
     ip = get_host_ip()
 
     def test_proxy(proxy: dict[str, str]) -> dict[str, str] | None:
-        proxy_handler = urllib.request.ProxyHandler(proxy)
-        opener = urllib.request.build_opener(proxy_handler)
-        opener.addheaders = [
-            ("User-Agent", "curl/7.72.0"),
-        ]
-        urllib.request.install_opener(opener)
-        with urllib.request.urlopen("https://ipconfig.io", timeout=10) as response:
-            content: bytes = response.read()
-            new_ip = content.decode("utf-8").strip()
-            if new_ip != ip:
-                return proxy
+        response = requests.get(
+            "https://ipconfig.io",
+            proxies=proxy,
+            headers={"User-Agent": "curl/7.72.0"},
+            timeout=10,
+        )
+        new_ip = response.text.strip()
+        if new_ip != ip:
+            return proxy
         return None
 
     candidates_proxies = []
