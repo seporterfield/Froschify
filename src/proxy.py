@@ -8,10 +8,6 @@ from src.config import settings
 logger = logging.getLogger("uvicorn.error")
 
 
-class NoGoodProxyException(Exception):
-    pass
-
-
 def get_working_proxy(proxy_conns: list[str]) -> dict[str, str] | None:
     proxies = []
     for proxy_conn in proxy_conns:
@@ -51,7 +47,7 @@ def get_working_proxy(proxy_conns: list[str]) -> dict[str, str] | None:
         if yt.vid_info.get("videoDetails", {}).get("lengthSeconds") is not None:
             return candidate_proxy
 
-    raise NoGoodProxyException
+    return None
 
 
 def get_host_ip() -> str:

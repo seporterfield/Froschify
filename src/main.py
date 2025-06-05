@@ -38,7 +38,9 @@ def get_yt_handler() -> Callable[
 def create_app() -> FastAPI:
     Path(settings.VIDEO_FOLDER).mkdir(mode=0o755, exist_ok=True)
 
-    proxy = None if not settings.PROXY_CONNS else get_working_proxy(settings.PROXY_CONNS)
+    proxy = (
+        None if not settings.PROXY_CONNS else get_working_proxy(settings.PROXY_CONNS)
+    )
 
     limiter = Limiter(key_func=get_remote_address)
     app = FastAPI()
