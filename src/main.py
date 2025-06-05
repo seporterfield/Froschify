@@ -29,23 +29,6 @@ class VideoRequest(BaseModel):
     youtube_url: str
 
 
-def make_proxy() -> dict[str, str] | None:
-    proxy = (
-        None
-        if not settings.PROXY_CONNS or settings.PROXY_CONNS[0].strip() == ""
-        else get_working_proxy(settings.PROXY_CONNS)
-    )
-    if proxy is None:
-        return None
-    _, error = dl_yt_video(url=settings.TEST_YOUTUBE_URL, proxies=proxy)
-    if error:
-        logger.critical(
-            f"error during test youtube_dl: {error}\n{traceback.format_exc()}"
-        )
-        exit(1)
-    return proxy
-
-
 def get_yt_handler() -> Callable[
     [str, str, dict[str, str] | None, int], Tuple[str | None, Enum | None]
 ]:
@@ -55,7 +38,7 @@ def get_yt_handler() -> Callable[
 def create_app() -> FastAPI:
     Path(settings.VIDEO_FOLDER).mkdir(mode=0o755, exist_ok=True)
 
-    proxy = make_proxy()
+    proxy = None if not settings.PROXY_CONNS else get_working_proxy(settings.PROXY_CONNS)
 
     limiter = Limiter(key_func=get_remote_address)
     app = FastAPI()

@@ -11,5 +11,9 @@ class Settings(BaseSettings):
     PROXY_CONNS: list[str] = []
     TEST_YOUTUBE_URL: str = "https://www.youtube.com/watch?v=tPEE9ZwTmy0"
 
+    class Config:
+        env_file = "local.env"
+        env_file_encoding = "utf-8"
+
 
 settings = Settings()

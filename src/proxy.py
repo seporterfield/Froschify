@@ -47,6 +47,7 @@ def get_working_proxy(proxy_conns: list[str]) -> dict[str, str] | None:
 
     for candidate_proxy in candidates_proxies:
         yt = YouTube(settings.TEST_YOUTUBE_URL, proxies=candidate_proxy)
+        yt.vid_details
         if yt.vid_info.get("videoDetails", {}).get("lengthSeconds") is not None:
             return candidate_proxy
 
